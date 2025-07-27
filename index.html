@@ -76,6 +76,10 @@
             background-color: #dc3545;
         }
 
+        .status-warning {
+            background-color: #ffc107;
+        }
+
         .status-loading {
             background-color: #ffc107;
             animation: pulse 1.5s infinite;
@@ -295,6 +299,10 @@
                     serverStatus = 'ok';
                     updateServerStatusDisplay('✅ Сервер работает', 'status-ok');
                     console.log('Сервер работает');
+                } else if (data.status === 'warning') {
+                    serverStatus = 'ok'; // Разрешаем работу даже с предупреждением
+                    updateServerStatusDisplay('⚠️ ' + data.message, 'status-warning');
+                    console.log('Сервер работает с предупреждением:', data.message);
                 } else {
                     serverStatus = 'error';
                     updateServerStatusDisplay('❌ Сервер недоступен', 'status-error');

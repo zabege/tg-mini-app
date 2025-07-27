@@ -20,13 +20,17 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // Сначала проверяем, есть ли API ключ
         if (!DEEPSEEK_API_KEY) {
-            return res.status(500).json({ 
-                status: 'error', 
-                message: 'API key not configured' 
+            console.log('DEEPSEEK_API_KEY не настроен');
+            return res.json({ 
+                status: 'warning', 
+                message: 'API ключ не настроен, но сервер работает' 
             });
         }
 
+        // Если есть ключ, проверяем API
+        console.log('Проверка DeepSeek API...');
         const response = await fetch('https://api.deepseek.com/v1/models', {
             headers: {
                 'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
@@ -34,17 +38,21 @@ module.exports = async (req, res) => {
         });
 
         if (response.ok) {
+            console.log('DeepSeek API работает');
             res.json({ status: 'ok', message: 'API работает' });
         } else {
-            res.status(response.status).json({ 
-                status: 'error', 
-                message: `API недоступен: ${response.status}` 
+            console.log('DeepSeek API недоступен:', response.status);
+            res.json({ 
+                status: 'warning', 
+                message: `API недоступен (${response.status}), но сервер работает` 
             });
         }
     } catch (error) {
-        res.status(500).json({ 
-            status: 'error', 
-            message: 'Ошибка подключения к API' 
+        console.error('Ошибка проверки API:', error);
+        // Даже при ошибке API возвращаем успешный статус сервера
+        res.json({ 
+            status: 'warning', 
+            message: 'Ошибка подключения к API, но сервер работает' 
         });
     }
 }; 
