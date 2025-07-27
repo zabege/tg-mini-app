@@ -108,12 +108,6 @@ const assessmentQuestions = {
     ]
 };
 
-// Функция для получения случайного вопроса оценки
-function getRandomAssessmentQuestion(language) {
-    const questions = assessmentQuestions[language];
-    return questions[Math.floor(Math.random() * questions.length)];
-}
-
 // Функция для получения ответа на вопрос оценки
 function getAssessmentResponse(language, character, questionIndex) {
     const responses = {
@@ -170,7 +164,10 @@ function getAssessmentResponse(language, character, questionIndex) {
     return responses[language][character][questionIndex];
 }
 
-module.exports = async (req, res) => {
+// Vercel serverless function
+export default async function handler(req, res) {
+    console.log('API chat.js вызван, метод:', req.method);
+    
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -203,12 +200,6 @@ module.exports = async (req, res) => {
 
         console.log('Chat endpoint вызван для языка:', language, 'персонажа:', character);
 
-        // Всегда используем демо-режим
-        console.log('Используем демо-режим для языка:', language, 'персонажа:', character);
-        
-        // Имитируем задержку для реалистичности
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-        
         // Получаем прогресс оценки
         const assessmentProgress = req.body.assessmentProgress || { currentQuestion: 0, completed: false };
         console.log('Получен прогресс оценки:', assessmentProgress);
@@ -310,4 +301,4 @@ module.exports = async (req, res) => {
             });
         }
     }
-}; 
+} 
