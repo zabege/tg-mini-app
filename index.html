@@ -227,6 +227,21 @@
                     placeholder="sk-..."
                     onchange="saveApiKey()"
                 >
+                <button 
+                    type="button" 
+                    onclick="testApiKey()" 
+                    style="
+                        padding: 8px 16px;
+                        background-color: #28a745;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        margin-bottom: 8px;
+                    "
+                >
+                    Проверить ключ
+                </button>
                 <div class="api-key-info">
                     Ключ сохраняется только в вашем браузере и не отправляется на сервер.
                 </div>
@@ -286,6 +301,7 @@
         // Загружаем сохраненный API ключ при загрузке страницы
         window.onload = function() {
             const savedApiKey = localStorage.getItem('openai_api_key');
+            console.log('Загруженный API ключ:', savedApiKey ? 'Есть' : 'Нет');
             if (savedApiKey) {
                 document.getElementById('apiKeyInput').value = savedApiKey;
                 apiKey = savedApiKey;
@@ -295,18 +311,69 @@
 
         function saveApiKey() {
             apiKey = document.getElementById('apiKeyInput').value.trim();
+            console.log('Сохранение API ключа:', apiKey ? 'Есть' : 'Нет');
             localStorage.setItem('openai_api_key', apiKey);
             updateButtonStates();
         }
 
         function updateButtonStates() {
             const hasApiKey = apiKey && apiKey.startsWith('sk-');
+            console.log('API ключ валиден:', hasApiKey);
             document.getElementById('enBtn').disabled = !hasApiKey;
             document.getElementById('ruBtn').disabled = !hasApiKey;
             document.getElementById('esBtn').disabled = !hasApiKey;
         }
 
+        async function testApiKey() {
+            const testBtn = event.target;
+            const originalText = testBtn.textContent;
+            
+            if (!apiKey || !apiKey.startsWith('sk-')) {
+                alert('Пожалуйста, введите API ключ перед проверкой.');
+                return;
+            }
+
+            testBtn.textContent = 'Проверяю...';
+            testBtn.disabled = true;
+
+            try {
+                console.log('Тестирование API ключа...');
+                
+                const response = await fetch('https://api.openai.com/v1/models', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+
+                console.log('Ответ теста:', response.status);
+
+                if (response.ok) {
+                    alert('✅ API ключ работает правильно!');
+                    updateButtonStates();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Ошибка теста:', errorText);
+                    
+                    if (response.status === 401) {
+                        alert('❌ Неверный API ключ. Проверьте ключ и попробуйте снова.');
+                    } else {
+                        alert(`❌ Ошибка API: ${response.status} - ${errorText}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка теста:', error);
+                alert('❌ Ошибка подключения к API. Проверьте интернет-соединение.');
+            } finally {
+                testBtn.textContent = originalText;
+                testBtn.disabled = false;
+            }
+        }
+
         function selectLanguage(lang) {
+            console.log('Попытка выбора языка:', lang);
+            console.log('Текущий API ключ:', apiKey);
+            
             if (!apiKey || !apiKey.startsWith('sk-')) {
                 alert('Пожалуйста, введите правильный OpenAI API ключ для начала чата.');
                 return;
@@ -364,6 +431,8 @@
             
             if (!message) return;
 
+            console.log('Отправка сообщения. API ключ:', apiKey ? 'Есть' : 'Нет');
+
             // Добавляем сообщение пользователя
             chatMessages.push({ role: 'user', content: message });
             input.value = '';
@@ -381,11 +450,18 @@
             try {
                 clearError();
                 
+                // Проверяем API ключ перед отправкой
+                if (!apiKey || !apiKey.startsWith('sk-')) {
+                    throw new Error('API ключ не найден или недействителен');
+                }
+                
                 // Подготавливаем сообщения для API
                 const messagesForAPI = [
                     { role: 'system', content: systemPrompts[selectedLanguage] },
                     ...chatMessages.slice(0, -1) // Убираем сообщение загрузки
                 ];
+
+                console.log('Отправка запроса к OpenAI API...');
 
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -401,11 +477,16 @@
                     })
                 });
 
+                console.log('Ответ от API:', response.status, response.statusText);
+
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('Успешный ответ от API');
                 
                 // Убираем сообщение загрузки и добавляем ответ
                 chatMessages.pop(); // Убираем "Печатаю..."
@@ -418,7 +499,19 @@
                 console.error('Error:', error);
                 // Убираем сообщение загрузки
                 chatMessages.pop();
-                showError('Ошибка при отправке сообщения. Проверьте API ключ и попробуйте еще раз.');
+                
+                let errorMessage = 'Ошибка при отправке сообщения. ';
+                if (error.message.includes('API ключ не найден')) {
+                    errorMessage += 'Пожалуйста, введите правильный API ключ.';
+                } else if (error.message.includes('401')) {
+                    errorMessage += 'Неверный API ключ. Проверьте ключ и попробуйте снова.';
+                } else if (error.message.includes('429')) {
+                    errorMessage += 'Превышен лимит запросов. Попробуйте позже.';
+                } else {
+                    errorMessage += 'Проверьте API ключ и попробуйте еще раз.';
+                }
+                
+                showError(errorMessage);
             } finally {
                 // Восстанавливаем кнопку
                 sendBtn.disabled = false;
