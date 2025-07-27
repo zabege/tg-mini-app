@@ -510,6 +510,7 @@
 
         function showCharacterSelect() {
             document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'none'; // Скрываем чат
             document.getElementById('characterSelect').style.display = 'block';
             document.getElementById('characterTitle').textContent = `Выберите персонажа для изучения ${languageNames[selectedLanguage]}`;
             document.getElementById('maleDescription').textContent = characterDescriptions.male[selectedLanguage];
@@ -520,8 +521,11 @@
         function showMainMenu() {
             document.getElementById('mainMenu').style.display = 'block';
             document.getElementById('characterSelect').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'none'; // Скрываем чат
             document.getElementById('messageInput').value = '';
             document.getElementById('errorContainer').innerHTML = '';
+            selectedLanguage = null; // Сбрасываем выбранный язык
+            selectedCharacter = null; // Сбрасываем выбранного персонажа
         }
 
         function selectCharacter(character) {
