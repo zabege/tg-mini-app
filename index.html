@@ -10,46 +10,9 @@
         />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Vite + React + TS</title>
-        <style>
-            .lang-bar { display: flex; align-items: center; gap: 8px; padding: 12px; }
-            .welcome { text-align: center; font-size: 2em; margin-top: 16px; }
-        </style>
     </head>
     <body style="height: 100vh; overflow: hidden">
-        <div class="lang-bar">
-            <span id="select-label">Select language:</span>
-            <select id="lang-select">
-                <option value="en">English</option>
-                <option value="ru">Русский</option>
-                <option value="es">Español</option>
-            </select>
-        </div>
-        <h1 class="welcome" id="welcome-text">Welcome</h1>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
-        <script>
-            const translations = {
-                en: {
-                    welcome: 'Welcome',
-                    selectLanguage: 'Select language:',
-                },
-                ru: {
-                    welcome: 'Добро пожаловать',
-                    selectLanguage: 'Выберите язык:',
-                },
-                es: {
-                    welcome: 'Bienvenido',
-                    selectLanguage: 'Seleccione el idioma:',
-                },
-            };
-            const select = document.getElementById('lang-select');
-            const welcome = document.getElementById('welcome-text');
-            const label = document.getElementById('select-label');
-            select.addEventListener('change', function() {
-                const lang = select.value;
-                welcome.textContent = translations[lang].welcome;
-                label.textContent = translations[lang].selectLanguage;
-            });
-        </script>
     </body>
 </html>
