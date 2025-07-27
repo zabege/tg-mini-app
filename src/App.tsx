@@ -31,8 +31,11 @@ import WalletConnectModal from './components/connectors/WalletConnectModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { setConnectionState } from './redux/connectionSlice';
 
+// Добавим тип для поддерживаемых языков
+type SupportedLanguage = 'en' | 'ru' | 'es';
+
 // Добавим объект переводов
-const translations = {
+const translations: Record<SupportedLanguage, { welcome: string; selectLanguage: string }> = {
     en: {
         welcome: 'Welcome',
         selectLanguage: 'Select language:',
@@ -63,20 +66,20 @@ const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || '';
 
 function App() {
     const [view, setView] = useState<View>(View.MAIN_MENU);
-    const [language, setLanguage] = useState('en');
-    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+    const [language, setLanguage] = useState<SupportedLanguage>('en');
+    const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage | null>(null);
     const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
     const [userInput, setUserInput] = useState('');
 
     // Тестовые вопросы для определения уровня
-    const testPrompts = {
+    const testPrompts: Record<SupportedLanguage, string> = {
         en: 'Let’s start! Please answer: How long have you been learning English? Can you introduce yourself in English?',
         ru: 'Начнем! Пожалуйста, ответьте: Как давно вы изучаете русский язык? Можете представиться по-русски?',
         es: '¡Empecemos! Por favor, responda: ¿Cuánto tiempo lleva aprendiendo español? ¿Puede presentarse en español?',
     };
 
     // При выборе языка — переход в чат и отправка первого сообщения
-    const handleLanguageClick = (lang: string) => {
+    const handleLanguageClick = (lang: SupportedLanguage) => {
         setSelectedLanguage(lang);
         setView(View.CHAT);
         setChatMessages([
@@ -260,7 +263,7 @@ function App() {
             {/* Language Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 12 }}>
                 <span>{translations[language].selectLanguage}</span>
-                <select value={language} onChange={e => setLanguage(e.target.value)}>
+                <select value={language} onChange={e => setLanguage(e.target.value as SupportedLanguage)}>
                     <option value="en">English</option>
                     <option value="ru">Русский</option>
                     <option value="es">Español</option>
