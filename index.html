@@ -387,6 +387,25 @@
         .message-content {
             white-space: pre-wrap;
             line-height: 1.5;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: inherit;
+        }
+
+        .message-content em {
+            font-style: italic;
+        }
+
+        .message.user .message-content {
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            color: #1e293b;
         }
 
         .input-form {
@@ -671,9 +690,9 @@
             if (selectedLanguage && selectedCharacter) {
                 const key = `assessment_${selectedLanguage}_${selectedCharacter}`;
                 const saved = localStorage.getItem(key);
-                return saved ? JSON.parse(saved) : { currentQuestion: 1, completed: false };
+                return saved ? JSON.parse(saved) : { currentQuestion: 0, completed: false };
             }
-            return { currentQuestion: 1, completed: false };
+            return { currentQuestion: 0, completed: false };
         }
 
         function saveAssessmentProgress(progress) {
@@ -727,8 +746,8 @@
                 chatMessages = [welcomeMessage];
                 saveChatHistory();
                 
-                // Инициализируем прогресс оценки
-                saveAssessmentProgress({ currentQuestion: 1, completed: false });
+                                                // Инициализируем прогресс оценки
+                                saveAssessmentProgress({ currentQuestion: 0, completed: false });
                 renderMessages();
             }
         }
@@ -856,16 +875,16 @@
                     ]
                 };
                 
-                const firstQuestion = assessmentQuestions[selectedLanguage][0];
-                const welcomeMessage = {
-                    role: 'assistant',
-                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[character][selectedLanguage]}. Давайте начнем с оценки вашего уровня!\n\n**${firstQuestion}**`
-                };
-                chatMessages = [welcomeMessage];
-                saveChatHistory();
-                
-                // Инициализируем прогресс оценки
-                saveAssessmentProgress({ currentQuestion: 1, completed: false });
+                                                const firstQuestion = assessmentQuestions[selectedLanguage][0];
+                                const welcomeMessage = {
+                                    role: 'assistant',
+                                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[character][selectedLanguage]}. Давайте начнем с оценки вашего уровня!\n\n**${firstQuestion}**`
+                                };
+                                chatMessages = [welcomeMessage];
+                                saveChatHistory();
+                                
+                                // Инициализируем прогресс оценки
+                                saveAssessmentProgress({ currentQuestion: 0, completed: false });
             }
             
             renderMessages();
@@ -881,7 +900,14 @@
                 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
-                contentDiv.textContent = message.content;
+                
+                // Преобразуем markdown-подобную разметку в HTML
+                let content = message.content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+                
+                contentDiv.innerHTML = content;
                 
                 messageDiv.appendChild(contentDiv);
                 messagesDiv.appendChild(messageDiv);

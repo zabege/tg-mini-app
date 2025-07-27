@@ -206,7 +206,8 @@ module.exports = async (req, res) => {
         
         // Определяем, нужно ли дать следующий вопрос для оценки
         const userMessages = messages.filter(msg => msg.role === 'user');
-        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0; // Всегда даем следующий вопрос, если оценка не завершена
+        const lastUserMessage = userMessages[userMessages.length - 1];
+        const shouldGiveAssessment = !assessmentProgress.completed && lastUserMessage && lastUserMessage.content.trim().length > 0;
         console.log('Должен дать оценку:', shouldGiveAssessment, 'Завершена:', assessmentProgress.completed, 'Сообщений пользователя:', userMessages.length);
         
         let responseContent;
@@ -259,8 +260,10 @@ module.exports = async (req, res) => {
         // При любой ошибке используем скорринговые вопросы
         const { language, character } = req.body;
         const assessmentProgress = req.body.assessmentProgress || { currentQuestion: 0, completed: false };
+        const userMessages = req.body.messages ? req.body.messages.filter(msg => msg.role === 'user') : [];
+        const lastUserMessage = userMessages[userMessages.length - 1];
         
-        if (language && character && !assessmentProgress.completed) {
+        if (language && character && !assessmentProgress.completed && lastUserMessage && lastUserMessage.content.trim().length > 0) {
             // Даем следующий скорринговый вопрос
             const questionIndex = assessmentProgress.currentQuestion;
             if (questionIndex < 5) {
