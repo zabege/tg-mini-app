@@ -440,13 +440,20 @@
                 }
 
                 const data = await response.json();
-                console.log('Успешный ответ от сервера');
+                console.log('Успешный ответ от сервера, режим:', data.mode);
                 
                 // Убираем сообщение загрузки и добавляем ответ
                 chatMessages.pop(); // Убираем "Печатаю..."
+                
+                // Добавляем информацию о режиме работы
+                let responseContent = data.message;
+                if (data.mode === 'demo' || data.mode === 'fallback' || data.mode === 'error-fallback') {
+                    responseContent += '\n\n[Демо-режим]';
+                }
+                
                 chatMessages.push({ 
                     role: 'assistant', 
-                    content: data.message 
+                    content: responseContent 
                 });
 
             } catch (error) {
@@ -454,15 +461,7 @@
                 // Убираем сообщение загрузки
                 chatMessages.pop();
                 
-                let errorMessage = 'Ошибка при отправке сообщения. ';
-                if (error.message.includes('Превышен лимит запросов')) {
-                    errorMessage += 'Попробуйте позже.';
-                } else if (error.message.includes('Ошибка авторизации')) {
-                    errorMessage += 'Проблема с сервером.';
-                } else {
-                    errorMessage += 'Попробуйте еще раз.';
-                }
-                
+                let errorMessage = 'Ошибка при отправке сообщения. Попробуйте еще раз.';
                 showError(errorMessage);
             } finally {
                 // Восстанавливаем кнопку
