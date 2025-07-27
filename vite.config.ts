@@ -8,7 +8,7 @@ export default defineConfig({
     build: {
         outDir: './docs',
     },
-    base: '/tg-mini-app/',
+    base: './',
     server: {
         port: 5174,
     },
