@@ -297,8 +297,9 @@
                 
                 if (data.status === 'ok') {
                     serverStatus = 'ok';
-                    updateServerStatusDisplay('✅ Сервер работает', 'status-ok');
-                    console.log('Сервер работает');
+                    const apiInfo = data.bestApi ? ` (${data.bestApi.toUpperCase()})` : '';
+                    updateServerStatusDisplay('✅ Сервер работает' + apiInfo, 'status-ok');
+                    console.log('Сервер работает с API:', data.bestApi);
                 } else if (data.status === 'warning') {
                     serverStatus = 'ok'; // Разрешаем работу даже с предупреждением
                     updateServerStatusDisplay('⚠️ ' + data.message, 'status-warning');

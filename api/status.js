@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 
-// DeepSeek API ключ из переменных окружения
+// API ключи из переменных окружения
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 module.exports = async (req, res) => {
@@ -20,39 +21,86 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // Сначала проверяем, есть ли API ключ
-        if (!DEEPSEEK_API_KEY) {
-            console.log('DEEPSEEK_API_KEY не настроен');
-            return res.json({ 
-                status: 'warning', 
-                message: 'API ключ не настроен, но сервер работает' 
-            });
+        console.log('Проверка доступности API...');
+        
+        // Проверяем OpenAI API
+        let openaiWorking = false;
+        if (OPENAI_API_KEY) {
+            try {
+                console.log('Тестирование OpenAI API...');
+                const openaiResponse = await fetch('https://api.openai.com/v1/models', {
+                    headers: {
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    }
+                });
+                openaiWorking = openaiResponse.ok;
+                console.log('OpenAI API статус:', openaiResponse.status, openaiWorking ? 'работает' : 'не работает');
+            } catch (error) {
+                console.log('OpenAI API ошибка:', error.message);
+            }
+        } else {
+            console.log('OpenAI API ключ не настроен');
         }
 
-        // Если есть ключ, проверяем API
-        console.log('Проверка DeepSeek API...');
-        const response = await fetch('https://api.deepseek.com/v1/models', {
-            headers: {
-                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        // Проверяем DeepSeek API
+        let deepseekWorking = false;
+        if (DEEPSEEK_API_KEY) {
+            try {
+                console.log('Тестирование DeepSeek API...');
+                const deepseekResponse = await fetch('https://api.deepseek.com/v1/models', {
+                    headers: {
+                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                    }
+                });
+                deepseekWorking = deepseekResponse.ok;
+                console.log('DeepSeek API статус:', deepseekResponse.status, deepseekWorking ? 'работает' : 'не работает');
+            } catch (error) {
+                console.log('DeepSeek API ошибка:', error.message);
             }
+        } else {
+            console.log('DeepSeek API ключ не настроен');
+        }
+
+        // Определяем лучший доступный API
+        let bestApi = null;
+        let status = 'error';
+        let message = '';
+
+        if (openaiWorking) {
+            bestApi = 'openai';
+            status = 'ok';
+            message = '✅ OpenAI API работает';
+        } else if (deepseekWorking) {
+            bestApi = 'deepseek';
+            status = 'ok';
+            message = '✅ DeepSeek API работает';
+        } else if (OPENAI_API_KEY || DEEPSEEK_API_KEY) {
+            status = 'warning';
+            message = '⚠️ API ключи настроены, но API недоступны';
+        } else {
+            status = 'error';
+            message = '❌ API ключи не настроены';
+        }
+
+        console.log('Выбранный API:', bestApi);
+        console.log('Финальный статус:', status, message);
+
+        res.json({ 
+            status: status,
+            message: message,
+            bestApi: bestApi,
+            openaiAvailable: openaiWorking,
+            deepseekAvailable: deepseekWorking,
+            openaiConfigured: !!OPENAI_API_KEY,
+            deepseekConfigured: !!DEEPSEEK_API_KEY
         });
 
-        if (response.ok) {
-            console.log('DeepSeek API работает');
-            res.json({ status: 'ok', message: 'API работает' });
-        } else {
-            console.log('DeepSeek API недоступен:', response.status);
-            res.json({ 
-                status: 'warning', 
-                message: `API недоступен (${response.status}), но сервер работает` 
-            });
-        }
     } catch (error) {
-        console.error('Ошибка проверки API:', error);
-        // Даже при ошибке API возвращаем успешный статус сервера
+        console.error('Общая ошибка проверки API:', error);
         res.json({ 
-            status: 'warning', 
-            message: 'Ошибка подключения к API, но сервер работает' 
+            status: 'error', 
+            message: 'Ошибка проверки API',
+            error: error.message
         });
     }
 }; 
