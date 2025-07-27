@@ -662,7 +662,9 @@
         function saveChatHistory() {
             if (selectedLanguage && selectedCharacter) {
                 const key = `chat_${selectedLanguage}_${selectedCharacter}`;
-                localStorage.setItem(key, JSON.stringify(chatMessages));
+                // Сохраняем только постоянные сообщения, исключая временные
+                const messagesToSave = chatMessages.filter(msg => !msg.isTemporary);
+                localStorage.setItem(key, JSON.stringify(messagesToSave));
             }
         }
 
@@ -895,14 +897,25 @@
             messagesDiv.innerHTML = '';
             
             chatMessages.forEach(message => {
+                // Пропускаем временные сообщения при рендеринге
+                if (message.isTemporary) {
+                    return;
+                }
+                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${message.role}`;
                 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
                 
-                // Преобразуем markdown-подобную разметку в HTML
+                // Безопасно обрабатываем контент, избегая XSS
                 let content = message.content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;')
+                    // Преобразуем markdown-подобную разметку в HTML
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/g, '<em>$1</em>')
                     .replace(/\n/g, '<br>');
@@ -947,8 +960,8 @@
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<span class="loading"></span> Отправка...';
             
-            // Добавляем сообщение загрузки
-            const loadingMessage = { role: 'assistant', content: 'Печатаю...' };
+            // Добавляем временное сообщение загрузки
+            const loadingMessage = { role: 'assistant', content: 'Печатаю...', isTemporary: true };
             chatMessages.push(loadingMessage);
             renderMessages();
 
@@ -993,8 +1006,8 @@
                 const data = await response.json();
                 console.log('Успешный ответ от сервера, режим:', data.mode);
                 
-                // Убираем сообщение загрузки и добавляем ответ
-                chatMessages.pop(); // Убираем "Печатаю..."
+                // Убираем временное сообщение загрузки
+                chatMessages = chatMessages.filter(msg => !msg.isTemporary);
                 
                 // Добавляем информацию о режиме работы
                 let responseContent = data.message;
@@ -1017,8 +1030,8 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                // Убираем сообщение загрузки
-                chatMessages.pop();
+                // Убираем временное сообщение загрузки
+                chatMessages = chatMessages.filter(msg => !msg.isTemporary);
                 
                 // Используем локальные демо-ответы при ошибке API
                 const demoResponses = {
