@@ -47,11 +47,14 @@ const translations = {
     },
 };
 
+// Добавим view для чата
 enum View {
     LANDING = 0,
     CONNECT = 1,
     CONNECTED = 2,
     WALLET = 3,
+    MAIN_MENU = 4,
+    CHAT = 5,
 }
 
 WebApp.setHeaderColor('#1a1a1a');
@@ -59,8 +62,27 @@ WebApp.setHeaderColor('#1a1a1a');
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || '';
 
 function App() {
-    const [view, setView] = useState<View>(View.LANDING);
+    const [view, setView] = useState<View>(View.MAIN_MENU);
     const [language, setLanguage] = useState('en');
+    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+    const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
+    const [userInput, setUserInput] = useState('');
+
+    // Тестовые вопросы для определения уровня
+    const testPrompts = {
+        en: 'Let’s start! Please answer: How long have you been learning English? Can you introduce yourself in English?',
+        ru: 'Начнем! Пожалуйста, ответьте: Как давно вы изучаете русский язык? Можете представиться по-русски?',
+        es: '¡Empecemos! Por favor, responda: ¿Cuánto tiempo lleva aprendiendo español? ¿Puede presentarse en español?',
+    };
+
+    // При выборе языка — переход в чат и отправка первого сообщения
+    const handleLanguageClick = (lang: string) => {
+        setSelectedLanguage(lang);
+        setView(View.CHAT);
+        setChatMessages([
+            { role: 'assistant', content: testPrompts[lang] }
+        ]);
+    };
 
     // Connection State
     const connectionState = useSelector(
@@ -178,6 +200,26 @@ function App() {
         // Sell
     };
 
+    // Функция отправки сообщения
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!userInput.trim()) return;
+        // Добавляем сообщение пользователя
+        setChatMessages(prev => [
+            ...prev,
+            { role: 'user', content: userInput }
+        ]);
+        const currentInput = userInput;
+        setUserInput('');
+        // Имитация ответа от ChatGPT (заглушка)
+        setTimeout(() => {
+            setChatMessages(prev => [
+                ...prev,
+                { role: 'assistant', content: `Ответ от ChatGPT на: "${currentInput}" (здесь будет интеграция с API)` }
+            ]);
+        }, 1200);
+    };
+
     // Connect Overlay
     const [showConnectOverlay, setShowConnectOverlay] = useState(false);
     const [slideAnimation, setSlideAnimation] = useState('in');
@@ -226,6 +268,47 @@ function App() {
             </div>
             {/* Пример использования перевода */}
             <h1 style={{ textAlign: 'center' }}>{translations[language].welcome}</h1>
+            {view === View.MAIN_MENU && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
+                    <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 24 }}>YourLanguageMate</h1>
+                    <h2 style={{ fontSize: 20, marginBottom: 16 }}>Выберите язык для обучения:</h2>
+                    <ul style={{ listStyle: 'none', padding: 0, width: 240 }}>
+                        <li>
+                            <button style={{ width: '100%', padding: 12, marginBottom: 8, fontSize: 18 }} onClick={() => handleLanguageClick('en')}>Английский</button>
+                        </li>
+                        <li>
+                            <button style={{ width: '100%', padding: 12, marginBottom: 8, fontSize: 18 }} onClick={() => handleLanguageClick('ru')}>Русский</button>
+                        </li>
+                        <li>
+                            <button style={{ width: '100%', padding: 12, fontSize: 18 }} onClick={() => handleLanguageClick('es')}>Испанский</button>
+                        </li>
+                    </ul>
+                </div>
+            )}
+            {view === View.CHAT && selectedLanguage && (
+                <div style={{ maxWidth: 480, margin: '40px auto', border: '1px solid #eee', borderRadius: 12, padding: 24, background: '#fff' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: 16 }}>Чат: {selectedLanguage === 'en' ? 'Английский' : selectedLanguage === 'ru' ? 'Русский' : 'Испанский'}</h2>
+                    <div style={{ minHeight: 120, marginBottom: 16 }}>
+                        {chatMessages.map((msg, idx) => (
+                            <div key={idx} style={{ marginBottom: 12, textAlign: msg.role === 'assistant' ? 'left' : 'right' }}>
+                                <span style={{ background: msg.role === 'assistant' ? '#f0f0f0' : '#d1e7dd', borderRadius: 8, padding: 8, display: 'inline-block' }}>{msg.content}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: 8 }}>
+                        <input
+                            type="text"
+                            value={userInput}
+                            onChange={e => setUserInput(e.target.value)}
+                            placeholder="Введите сообщение..."
+                            style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+                        />
+                        <button type="submit" style={{ padding: '8px 16px', borderRadius: 6, background: '#007bff', color: '#fff', border: 'none' }}>
+                            Отправить
+                        </button>
+                    </form>
+                </div>
+            )}
             {view === View.LANDING && (
                 <div className="flex flex-col flex-grow min-h-full justify-end">
                     <div className="components-container mb-2">
