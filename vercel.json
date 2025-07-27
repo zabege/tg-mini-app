@@ -15,13 +15,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "api/chat.js": {
-      "maxDuration": 30
-    },
-    "api/status.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 } 

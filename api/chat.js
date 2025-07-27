@@ -165,7 +165,7 @@ function getAssessmentResponse(language, character, questionIndex) {
 }
 
 // Vercel serverless function
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
     console.log('API chat.js вызван, метод:', req.method);
     
     // Enable CORS
@@ -301,4 +301,4 @@ export default async function handler(req, res) {
             });
         }
     }
-} 
+}; 
