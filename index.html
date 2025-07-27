@@ -688,24 +688,45 @@
                 
                 // Используем локальные демо-ответы при ошибке API
                 const demoResponses = {
-                    en: [
-                        "Great! I can see you're learning English. Let me help you improve!",
-                        "That's a good start! Try to practice speaking English every day.",
-                        "Excellent progress! Here's a tip: watch English movies with subtitles."
-                    ],
-                    ru: [
-                        "Отлично! Я вижу, что вы изучаете русский язык. Давайте улучшим ваши навыки!",
-                        "Хорошее начало! Попробуйте практиковать русский каждый день.",
-                        "Отличный прогресс! Совет: смотрите русские фильмы с субтитрами."
-                    ],
-                    es: [
-                        "¡Excelente! Veo que estás aprendiendo español. ¡Te ayudo a mejorar!",
-                        "¡Buen comienzo! Intenta practicar español todos los días.",
-                        "¡Excelente progreso! Consejo: mira películas en español con subtítulos."
-                    ]
+                    en: {
+                        male: [
+                            "Great! I can see you're learning English. As your tutor Alex, I'm here to help you improve your skills step by step.",
+                            "That's a good start! Remember, practice makes perfect. Let's work on your pronunciation together.",
+                            "Excellent progress! Here's a tip from me: try to think in English instead of translating from your native language."
+                        ],
+                        female: [
+                            "Hello! I'm Maria, your friendly English tutor. I'm excited to help you on your language learning journey!",
+                            "That's wonderful! I believe everyone can learn a language with the right approach and support.",
+                            "You're making great progress! Let me share a helpful tip: try watching English movies with subtitles."
+                        ]
+                    },
+                    ru: {
+                        male: [
+                            "Отлично! Я Алекс, ваш преподаватель русского языка. Я вижу, что вы серьезно относитесь к обучению.",
+                            "Хорошее начало! За 5 лет преподавания я понял, что регулярность - ключ к успеху.",
+                            "Отличный прогресс! Мой совет: попробуйте думать на русском языке, а не переводить."
+                        ],
+                        female: [
+                            "Привет! Я Мария, ваш дружелюбный преподаватель русского языка. Рада помочь вам в изучении!",
+                            "Это замечательно! Я верю, что каждый может выучить язык при правильном подходе.",
+                            "Вы делаете отличные успехи! Мой совет: смотрите русские фильмы с субтитрами."
+                        ]
+                    },
+                    es: {
+                        male: [
+                            "¡Excelente! Soy Alex, tu tutor de español. Veo que te tomas en serio el aprendizaje del idioma.",
+                            "¡Buen comienzo! En 5 años de enseñanza he aprendido que la constancia es la clave del éxito.",
+                            "¡Excelente progreso! Mi consejo: intenta pensar en español en lugar de traducir."
+                        ],
+                        female: [
+                            "¡Hola! Soy Maria, tu tutora amigable de español. ¡Estoy emocionada de ayudarte en tu viaje de aprendizaje!",
+                            "¡Eso es maravilloso! Creo que todos pueden aprender un idioma con el enfoque correcto.",
+                            "¡Estás progresando mucho! Mi consejo: mira películas en español con subtítulos."
+                        ]
+                    }
                 };
                 
-                const responses = demoResponses[selectedLanguage];
+                const responses = demoResponses[selectedLanguage][selectedCharacter];
                 const randomResponse = responses[Math.floor(Math.random() * responses.length)];
                 
                 chatMessages.push({ 
