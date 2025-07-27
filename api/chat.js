@@ -80,6 +80,93 @@ const demoResponses = {
     }
 };
 
+// Структурированные вопросы для оценки уровня
+const assessmentQuestions = {
+    ru: [
+        "Расскажите о себе: где вы учились, чем увлекаетесь?",
+        "Прочитайте и перескажите короткий абзац текста (можно дать текст заранее).",
+        "Как вы понимаете разницу между словами «ложить» и «класть»?",
+        "Составьте связное предложение с использованием слов «тем не менее», «впрочем», «однако».",
+        "Послушайте короткий отрывок (например, новость или диалог) и перескажите, о чём он."
+    ],
+    en: [
+        "Can you introduce yourself and describe your daily routine?",
+        "Listen to a short audio clip (e.g., weather forecast) and explain what you understood.",
+        "What is the difference between present perfect and past simple? Give examples.",
+        "Read a short paragraph and summarize it in your own words.",
+        "Make a sentence using the words although, meanwhile, and however."
+    ],
+    es: [
+        "¿Puedes presentarte y contarme cómo es un día típico para ti?",
+        "Lee este párrafo corto y dime de qué trata (текст можно дать отдельно).",
+        "¿Cuál es la diferencia entre los tiempos pretérito indefinido y pretérito imperfecto?",
+        "Escucha este audio breve y dime qué ocurrió.",
+        "Forma una oración con aunque, sin embargo, y mientras tanto."
+    ]
+};
+
+// Функция для получения случайного вопроса оценки
+function getRandomAssessmentQuestion(language) {
+    const questions = assessmentQuestions[language];
+    return questions[Math.floor(Math.random() * questions.length)];
+}
+
+// Функция для получения ответа на вопрос оценки
+function getAssessmentResponse(language, character, questionIndex) {
+    const responses = {
+        ru: {
+            male: [
+                "Отличный ответ! Я вижу, что у вас хорошая база русского языка. Давайте поработаем над деталями.",
+                "Хорошо! Ваше понимание грамматики развивается. Попробуйте использовать больше сложных конструкций.",
+                "Интересный подход! Как преподаватель с опытом, я могу предложить несколько альтернативных вариантов.",
+                "Молодец! Ваш словарный запас впечатляет. Давайте добавим еще несколько полезных выражений.",
+                "Отлично! Ваше произношение улучшается. Продолжайте практиковаться с аудиоматериалами."
+            ],
+            female: [
+                "Прекрасно! Я рада видеть ваш прогресс в изучении русского языка. Вы делаете большие успехи!",
+                "Замечательно! Ваш подход к изучению грамматики очень правильный. Продолжайте в том же духе!",
+                "Отличная работа! Как ваш преподаватель, я горжусь вашими достижениями. Давайте двигаться дальше!",
+                "Великолепно! Ваш словарный запас растет с каждым днем. Вы настоящий пример для других студентов!",
+                "Потрясающе! Ваше понимание русского языка становится все глубже. Вы на правильном пути!"
+            ]
+        },
+        en: {
+            male: [
+                "Excellent answer! I can see you have a solid foundation in English. Let's work on refining the details.",
+                "Good work! Your grammar understanding is developing well. Try incorporating more complex structures.",
+                "Interesting approach! As an experienced tutor, I can suggest several alternative ways to express this.",
+                "Well done! Your vocabulary is impressive. Let's add a few more useful expressions to your repertoire.",
+                "Great! Your pronunciation is improving. Keep practicing with audio materials to perfect your accent."
+            ],
+            female: [
+                "Wonderful! I'm so happy to see your progress in English. You're making excellent strides!",
+                "Fantastic! Your approach to grammar learning is spot on. Keep up this great work!",
+                "Excellent job! As your tutor, I'm proud of your achievements. Let's keep moving forward!",
+                "Amazing! Your vocabulary is growing every day. You're a great example for other students!",
+                "Outstanding! Your understanding of English is becoming deeper. You're definitely on the right track!"
+            ]
+        },
+        es: {
+            male: [
+                "¡Excelente respuesta! Veo que tienes una base sólida en español. Trabajemos en refinar los detalles.",
+                "¡Buen trabajo! Tu comprensión gramatical se está desarrollando bien. Intenta incorporar estructuras más complejas.",
+                "¡Enfoque interesante! Como tutor experimentado, puedo sugerir varias formas alternativas de expresar esto.",
+                "¡Bien hecho! Tu vocabulario es impresionante. Agreguemos algunas expresiones útiles más a tu repertorio.",
+                "¡Genial! Tu pronunciación está mejorando. Sigue practicando con materiales de audio para perfeccionar tu acento."
+            ],
+            female: [
+                "¡Maravilloso! Estoy tan feliz de ver tu progreso en español. ¡Estás haciendo excelentes avances!",
+                "¡Fantástico! Tu enfoque para aprender gramática es perfecto. ¡Sigue con este gran trabajo!",
+                "¡Excelente trabajo! Como tu tutora, estoy orgullosa de tus logros. ¡Sigamos avanzando!",
+                "¡Increíble! Tu vocabulario crece cada día. ¡Eres un gran ejemplo para otros estudiantes!",
+                "¡Extraordinario! Tu comprensión del español se está volviendo más profunda. ¡Definitivamente vas por buen camino!"
+            ]
+        }
+    };
+    
+    return responses[language][character][questionIndex];
+}
+
 module.exports = async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -111,12 +198,28 @@ module.exports = async (req, res) => {
         // Имитируем задержку для реалистичности
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
         
-        // Выбираем случайный ответ из заготовленных для конкретного персонажа
-        const responses = demoResponses[language][character];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        // Определяем, нужно ли дать вопрос для оценки
+        const isFirstMessage = messages.length === 1 || (messages.length === 2 && messages[0].role === 'system');
+        const shouldGiveAssessment = isFirstMessage && Math.random() < 0.7; // 70% вероятность дать вопрос оценки
+        
+        let responseContent;
+        
+        if (shouldGiveAssessment) {
+            // Даем вопрос для оценки
+            const questionIndex = Math.floor(Math.random() * 5);
+            const question = assessmentQuestions[language][questionIndex];
+            const assessmentResponse = getAssessmentResponse(language, character, questionIndex);
+            
+            responseContent = `Отлично! Давайте оценим ваш уровень. Вот вопрос для вас:\n\n**${question}**\n\n${assessmentResponse}`;
+        } else {
+            // Используем обычные демо-ответы
+            const responses = demoResponses[language][character];
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            responseContent = randomResponse;
+        }
         
         res.json({
-            message: randomResponse,
+            message: responseContent,
             api: 'demo',
             mode: 'demo',
             character: character
