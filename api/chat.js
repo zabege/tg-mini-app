@@ -203,7 +203,7 @@ module.exports = async (req, res) => {
         
         // Определяем, нужно ли дать следующий вопрос для оценки
         const userMessages = messages.filter(msg => msg.role === 'user');
-        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0 && Math.random() < 0.8; // 80% вероятность дать следующий вопрос
+        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0; // Всегда даем следующий вопрос, если оценка не завершена
         
         let responseContent;
         let newAssessmentProgress = { ...assessmentProgress };
@@ -230,7 +230,7 @@ module.exports = async (req, res) => {
                 responseContent = randomResponse;
             }
         } else {
-            // Используем обычные демо-ответы
+            // Используем обычные демо-ответы только если оценка завершена
             const responses = demoResponses[language][character];
             const randomResponse = responses[Math.floor(Math.random() * responses.length)];
             responseContent = randomResponse;
@@ -247,19 +247,44 @@ module.exports = async (req, res) => {
     } catch (error) {
         console.error('Server error:', error);
         
-        // При любой ошибке используем демо-режим
+        // При любой ошибке используем скорринговые вопросы
         const { language, character } = req.body;
-        if (language && character && demoResponses[language] && demoResponses[language][character]) {
-            const responses = demoResponses[language][character];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            
-            res.json({
-                message: randomResponse,
-                api: 'demo',
-                mode: 'error-fallback',
-                character: character,
-                assessmentProgress: assessmentProgress
-            });
+        const assessmentProgress = req.body.assessmentProgress || { currentQuestion: 0, completed: false };
+        
+        if (language && character && !assessmentProgress.completed) {
+            // Даем следующий скорринговый вопрос
+            const questionIndex = assessmentProgress.currentQuestion;
+            if (questionIndex < 5) {
+                const question = assessmentQuestions[language][questionIndex];
+                const assessmentResponse = getAssessmentResponse(language, character, questionIndex);
+                
+                const responseContent = `Отлично! Вот следующий вопрос для оценки вашего уровня:\n\n**${question}**\n\n${assessmentResponse}`;
+                
+                const newAssessmentProgress = { 
+                    currentQuestion: questionIndex + 1, 
+                    completed: questionIndex + 1 >= 5 
+                };
+                
+                res.json({
+                    message: responseContent,
+                    api: 'demo',
+                    mode: 'error-fallback',
+                    character: character,
+                    assessmentProgress: newAssessmentProgress
+                });
+            } else {
+                // Если все вопросы заданы, используем обычные ответы
+                const responses = demoResponses[language][character];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                
+                res.json({
+                    message: randomResponse,
+                    api: 'demo',
+                    mode: 'error-fallback',
+                    character: character,
+                    assessmentProgress: { currentQuestion: 5, completed: true }
+                });
+            }
         } else {
             res.status(500).json({ 
                 error: 'Внутренняя ошибка сервера',
