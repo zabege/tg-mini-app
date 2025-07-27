@@ -1,10 +1,10 @@
 const fetch = require('node-fetch');
 
-// OpenAI API ключ из переменных окружения
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// DeepSeek API ключ из переменных окружения
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
-if (!OPENAI_API_KEY) {
-    console.error('ОШИБКА: OPENAI_API_KEY не установлен в переменных окружения');
+if (!DEEPSEEK_API_KEY) {
+    console.error('ОШИБКА: DEEPSEEK_API_KEY не установлен в переменных окружения');
 }
 
 // Системные промпты для разных языков
@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Missing messages or language' });
         }
 
-        if (!OPENAI_API_KEY) {
+        if (!DEEPSEEK_API_KEY) {
             return res.status(500).json({ error: 'API key not configured' });
         }
 
@@ -47,16 +47,16 @@ module.exports = async (req, res) => {
             ...messages
         ];
 
-        console.log('Отправка запроса к OpenAI API...');
+        console.log('Отправка запроса к DeepSeek API...');
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'deepseek-chat',
                 messages: messagesForAPI,
                 max_tokens: 500,
                 temperature: 0.7
@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('OpenAI API Error:', response.status, errorText);
+            console.error('DeepSeek API Error:', response.status, errorText);
             
             if (response.status === 429) {
                 return res.status(429).json({ 
@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
         }
 
         const data = await response.json();
-        console.log('Успешный ответ от OpenAI API');
+        console.log('Успешный ответ от DeepSeek API');
 
         res.json({
             message: data.choices[0].message.content

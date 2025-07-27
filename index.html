@@ -46,7 +46,7 @@
             color: #666;
         }
 
-        .api-key-section {
+        .status-section {
             margin-bottom: 24px;
             padding: 16px;
             background-color: #f8f9fa;
@@ -54,25 +54,37 @@
             border: 1px solid #dee2e6;
         }
 
-        .api-key-section h3 {
+        .status-section h3 {
             font-size: 16px;
             margin-bottom: 12px;
             color: #495057;
         }
 
-        .api-key-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-bottom: 8px;
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
         }
 
-        .api-key-info {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 8px;
+        .status-ok {
+            background-color: #28a745;
+        }
+
+        .status-error {
+            background-color: #dc3545;
+        }
+
+        .status-loading {
+            background-color: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
         .language-buttons {
@@ -213,43 +225,12 @@
             <h1>YourLanguageMate</h1>
             <h2>Выберите язык для обучения:</h2>
             
-            <!-- Секция API ключа -->
-            <div class="api-key-section">
-                <h3>🔑 OpenAI API Key</h3>
-                <div class="api-key-info">
-                    Для работы с живым чатом нужен API ключ OpenAI.<br>
-                    Получите его на <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>
-                </div>
-                <input 
-                    type="password" 
-                    id="apiKeyInput" 
-                    class="api-key-input" 
-                    placeholder="sk-..."
-                    onchange="saveApiKey()"
-                >
-                <button 
-                    type="button" 
-                    onclick="testApiKey()" 
-                    style="
-                        padding: 8px 16px;
-                        background-color: #28a745;
-                        color: white;
-                        border: none;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        margin-bottom: 8px;
-                    "
-                >
-                    Проверить ключ
-                </button>
-                <div style="margin: 12px 0; padding: 8px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="demoMode" onchange="toggleDemoMode()" style="margin-right: 8px;">
-                        <span>Демо-режим (без API ключа)</span>
-                    </label>
-                </div>
-                <div class="api-key-info">
-                    Ключ сохраняется только в вашем браузере и не отправляется на сервер.
+            <!-- Секция статуса сервера -->
+            <div class="status-section">
+                <h3>🖥️ Статус сервера</h3>
+                <div id="serverStatus">
+                    <span class="status-indicator status-loading"></span>
+                    <span>Проверка подключения...</span>
                 </div>
             </div>
 
@@ -284,7 +265,7 @@
     <script>
         let selectedLanguage = null;
         let chatMessages = [];
-        let apiKey = '';
+        let serverStatus = 'loading';
 
         const testPrompts = {
             en: 'Let\'s start! Please answer: How long have you been learning English? Can you introduce yourself in English?',
@@ -298,142 +279,58 @@
             es: 'Испанский'
         };
 
-        const systemPrompts = {
-            en: 'You are a helpful English language tutor. Help the user learn English by providing clear explanations, corrections, and encouragement. Keep responses concise but informative.',
-            ru: 'Вы - помощник по изучению русского языка. Помогайте пользователю изучать русский язык, давая четкие объяснения, исправления и поддержку. Держите ответы краткими, но информативными.',
-            es: 'Eres un tutor de español útil. Ayuda al usuario a aprender español proporcionando explicaciones claras, correcciones y aliento. Mantén las respuestas concisas pero informativas.'
-        };
-
-        // Демо-ответы для режима без API
-        const demoResponses = {
-            en: [
-                "Great! I can see you're learning English. Let me help you improve!",
-                "That's a good start! Try to practice speaking English every day.",
-                "Excellent progress! Here's a tip: watch English movies with subtitles.",
-                "Keep up the good work! Reading English books will help a lot.",
-                "You're doing well! Try to think in English instead of translating."
-            ],
-            ru: [
-                "Отлично! Я вижу, что вы изучаете русский язык. Давайте улучшим ваши навыки!",
-                "Хорошее начало! Попробуйте практиковать русский каждый день.",
-                "Отличный прогресс! Совет: смотрите русские фильмы с субтитрами.",
-                "Продолжайте в том же духе! Чтение русских книг очень поможет.",
-                "Вы хорошо справляетесь! Попробуйте думать на русском языке."
-            ],
-            es: [
-                "¡Excelente! Veo que estás aprendiendo español. ¡Te ayudo a mejorar!",
-                "¡Buen comienzo! Intenta practicar español todos los días.",
-                "¡Excelente progreso! Consejo: mira películas en español con subtítulos.",
-                "¡Sigue así! Leer libros en español te ayudará mucho.",
-                "¡Lo estás haciendo bien! Intenta pensar en español en lugar de traducir."
-            ]
-        };
-
-        // Загружаем сохраненный API ключ при загрузке страницы
+        // Проверяем статус сервера при загрузке
         window.onload = function() {
-            const savedApiKey = localStorage.getItem('openai_api_key');
-            const savedDemoMode = localStorage.getItem('demo_mode') === 'true';
-            
-            console.log('Загруженный API ключ:', savedApiKey ? 'Есть' : 'Нет');
-            console.log('Демо-режим:', savedDemoMode);
-            
-            if (savedApiKey) {
-                document.getElementById('apiKeyInput').value = savedApiKey;
-                apiKey = savedApiKey;
-            }
-            
-            if (savedDemoMode) {
-                document.getElementById('demoMode').checked = true;
-            }
-            
+            checkServerStatus();
             updateButtonStates();
         };
 
-        function saveApiKey() {
-            apiKey = document.getElementById('apiKeyInput').value.trim();
-            console.log('Сохранение API ключа:', apiKey ? 'Есть' : 'Нет');
-            localStorage.setItem('openai_api_key', apiKey);
+        async function checkServerStatus() {
+            try {
+                console.log('Проверка статуса сервера...');
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    serverStatus = 'ok';
+                    updateServerStatusDisplay('✅ Сервер работает', 'status-ok');
+                    console.log('Сервер работает');
+                } else {
+                    serverStatus = 'error';
+                    updateServerStatusDisplay('❌ Сервер недоступен', 'status-error');
+                    console.log('Сервер недоступен');
+                }
+            } catch (error) {
+                console.error('Ошибка проверки сервера:', error);
+                serverStatus = 'error';
+                updateServerStatusDisplay('❌ Ошибка подключения', 'status-error');
+            }
+            
             updateButtonStates();
         }
 
+        function updateServerStatusDisplay(message, statusClass) {
+            const statusElement = document.getElementById('serverStatus');
+            statusElement.innerHTML = `
+                <span class="status-indicator ${statusClass}"></span>
+                <span>${message}</span>
+            `;
+        }
+
         function updateButtonStates() {
-            const hasApiKey = apiKey && apiKey.startsWith('sk-');
-            const demoMode = document.getElementById('demoMode').checked;
-            const canStart = hasApiKey || demoMode;
+            const canStart = serverStatus === 'ok';
             
-            console.log('API ключ валиден:', hasApiKey, 'Демо-режим:', demoMode);
+            console.log('Сервер доступен:', canStart);
             document.getElementById('enBtn').disabled = !canStart;
             document.getElementById('ruBtn').disabled = !canStart;
             document.getElementById('esBtn').disabled = !canStart;
         }
 
-        function toggleDemoMode() {
-            const demoMode = document.getElementById('demoMode').checked;
-            localStorage.setItem('demo_mode', demoMode);
-            updateButtonStates();
-            
-            if (demoMode) {
-                console.log('Включен демо-режим');
-            } else {
-                console.log('Выключен демо-режим');
-            }
-        }
-
-        async function testApiKey() {
-            const testBtn = event.target;
-            const originalText = testBtn.textContent;
-            
-            if (!apiKey || !apiKey.startsWith('sk-')) {
-                alert('Пожалуйста, введите API ключ перед проверкой.');
-                return;
-            }
-
-            testBtn.textContent = 'Проверяю...';
-            testBtn.disabled = true;
-
-            try {
-                console.log('Тестирование API ключа...');
-                
-                const response = await fetch('https://api.openai.com/v1/models', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`
-                    }
-                });
-
-                console.log('Ответ теста:', response.status);
-
-                if (response.ok) {
-                    alert('✅ API ключ работает правильно!');
-                    updateButtonStates();
-                } else {
-                    const errorText = await response.text();
-                    console.error('Ошибка теста:', errorText);
-                    
-                    if (response.status === 401) {
-                        alert('❌ Неверный API ключ. Проверьте ключ и попробуйте снова.');
-                    } else {
-                        alert(`❌ Ошибка API: ${response.status} - ${errorText}`);
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка теста:', error);
-                alert('❌ Ошибка подключения к API. Проверьте интернет-соединение.');
-            } finally {
-                testBtn.textContent = originalText;
-                testBtn.disabled = false;
-            }
-        }
-
         function selectLanguage(lang) {
             console.log('Попытка выбора языка:', lang);
-            console.log('Текущий API ключ:', apiKey);
             
-            const hasApiKey = apiKey && apiKey.startsWith('sk-');
-            const demoMode = document.getElementById('demoMode').checked;
-            
-            if (!hasApiKey && !demoMode) {
-                alert('Пожалуйста, введите API ключ или включите демо-режим для начала чата.');
+            if (serverStatus !== 'ok') {
+                alert('Сервер недоступен. Попробуйте позже.');
                 return;
             }
             
@@ -489,10 +386,7 @@
             
             if (!message) return;
 
-            const hasApiKey = apiKey && apiKey.startsWith('sk-');
-            const demoMode = document.getElementById('demoMode').checked;
-            
-            console.log('Отправка сообщения. API ключ:', hasApiKey ? 'Есть' : 'Нет', 'Демо-режим:', demoMode);
+            console.log('Отправка сообщения на сервер...');
 
             // Добавляем сообщение пользователя
             chatMessages.push({ role: 'user', content: message });
@@ -511,71 +405,39 @@
             try {
                 clearError();
                 
-                if (demoMode) {
-                    // Демо-режим - используем предустановленные ответы
-                    console.log('Используется демо-режим');
-                    
-                    // Имитируем задержку
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Выбираем случайный ответ
-                    const responses = demoResponses[selectedLanguage];
-                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                    
-                    // Убираем сообщение загрузки и добавляем ответ
-                    chatMessages.pop(); // Убираем "Печатаю..."
-                    chatMessages.push({ 
-                        role: 'assistant', 
-                        content: randomResponse 
-                    });
-                    
-                } else {
-                    // Режим с API
-                    // Проверяем API ключ перед отправкой
-                    if (!hasApiKey) {
-                        throw new Error('API ключ не найден или недействителен');
-                    }
-                    
-                    // Подготавливаем сообщения для API
-                    const messagesForAPI = [
-                        { role: 'system', content: systemPrompts[selectedLanguage] },
-                        ...chatMessages.slice(0, -1) // Убираем сообщение загрузки
-                    ];
+                // Подготавливаем сообщения для сервера (без системного промпта)
+                const messagesForServer = chatMessages.slice(0, -1); // Убираем сообщение загрузки
 
-                    console.log('Отправка запроса к OpenAI API...');
+                console.log('Отправка запроса к серверу...');
 
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: 'gpt-3.5-turbo',
-                            messages: messagesForAPI,
-                            max_tokens: 500,
-                            temperature: 0.7
-                        })
-                    });
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: messagesForServer,
+                        language: selectedLanguage
+                    })
+                });
 
-                    console.log('Ответ от API:', response.status, response.statusText);
+                console.log('Ответ от сервера:', response.status, response.statusText);
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('API Error:', errorText);
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                    }
-
-                    const data = await response.json();
-                    console.log('Успешный ответ от API');
-                    
-                    // Убираем сообщение загрузки и добавляем ответ
-                    chatMessages.pop(); // Убираем "Печатаю..."
-                    chatMessages.push({ 
-                        role: 'assistant', 
-                        content: data.choices[0].message.content 
-                    });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Server Error:', errorData);
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
+
+                const data = await response.json();
+                console.log('Успешный ответ от сервера');
+                
+                // Убираем сообщение загрузки и добавляем ответ
+                chatMessages.pop(); // Убираем "Печатаю..."
+                chatMessages.push({ 
+                    role: 'assistant', 
+                    content: data.message 
+                });
 
             } catch (error) {
                 console.error('Error:', error);
@@ -583,14 +445,12 @@
                 chatMessages.pop();
                 
                 let errorMessage = 'Ошибка при отправке сообщения. ';
-                if (error.message.includes('API ключ не найден')) {
-                    errorMessage += 'Пожалуйста, введите правильный API ключ или включите демо-режим.';
-                } else if (error.message.includes('401')) {
-                    errorMessage += 'Неверный API ключ. Проверьте ключ и попробуйте снова.';
-                } else if (error.message.includes('429')) {
-                    errorMessage += 'Превышен лимит запросов. Попробуйте позже или включите демо-режим.';
+                if (error.message.includes('Превышен лимит запросов')) {
+                    errorMessage += 'Попробуйте позже.';
+                } else if (error.message.includes('Ошибка авторизации')) {
+                    errorMessage += 'Проблема с сервером.';
                 } else {
-                    errorMessage += 'Проверьте API ключ и попробуйте еще раз, или включите демо-режим.';
+                    errorMessage += 'Попробуйте еще раз.';
                 }
                 
                 showError(errorMessage);

@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 
-// OpenAI API ключ из переменных окружения
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// DeepSeek API ключ из переменных окружения
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -20,16 +20,16 @@ module.exports = async (req, res) => {
     }
 
     try {
-        if (!OPENAI_API_KEY) {
+        if (!DEEPSEEK_API_KEY) {
             return res.status(500).json({ 
                 status: 'error', 
                 message: 'API key not configured' 
             });
         }
 
-        const response = await fetch('https://api.openai.com/v1/models', {
+        const response = await fetch('https://api.deepseek.com/v1/models', {
             headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
             }
         });
 
