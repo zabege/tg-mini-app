@@ -22,9 +22,17 @@ module.exports = async (req, res) => {
 
     try {
         console.log('Проверка доступности API...');
+        console.log('OpenAI API ключ настроен:', !!OPENAI_API_KEY);
+        console.log('DeepSeek API ключ настроен:', !!DEEPSEEK_API_KEY);
         
-        // Проверяем OpenAI API
+        // Сначала просто проверяем, что сервер отвечает
+        let status = 'ok';
+        let message = '✅ Сервер работает';
+        let bestApi = null;
         let openaiWorking = false;
+        let deepseekWorking = false;
+
+        // Проверяем OpenAI API только если есть ключ
         if (OPENAI_API_KEY) {
             try {
                 console.log('Тестирование OpenAI API...');
@@ -38,12 +46,9 @@ module.exports = async (req, res) => {
             } catch (error) {
                 console.log('OpenAI API ошибка:', error.message);
             }
-        } else {
-            console.log('OpenAI API ключ не настроен');
         }
 
-        // Проверяем DeepSeek API
-        let deepseekWorking = false;
+        // Проверяем DeepSeek API только если есть ключ
         if (DEEPSEEK_API_KEY) {
             try {
                 console.log('Тестирование DeepSeek API...');
@@ -57,29 +62,21 @@ module.exports = async (req, res) => {
             } catch (error) {
                 console.log('DeepSeek API ошибка:', error.message);
             }
-        } else {
-            console.log('DeepSeek API ключ не настроен');
         }
 
         // Определяем лучший доступный API
-        let bestApi = null;
-        let status = 'error';
-        let message = '';
-
         if (openaiWorking) {
             bestApi = 'openai';
-            status = 'ok';
             message = '✅ OpenAI API работает';
         } else if (deepseekWorking) {
             bestApi = 'deepseek';
-            status = 'ok';
             message = '✅ DeepSeek API работает';
         } else if (OPENAI_API_KEY || DEEPSEEK_API_KEY) {
             status = 'warning';
             message = '⚠️ API ключи настроены, но API недоступны';
         } else {
-            status = 'error';
-            message = '❌ API ключи не настроены';
+            status = 'warning';
+            message = '⚠️ API ключи не настроены';
         }
 
         console.log('Выбранный API:', bestApi);
@@ -97,9 +94,10 @@ module.exports = async (req, res) => {
 
     } catch (error) {
         console.error('Общая ошибка проверки API:', error);
+        // Даже при ошибке возвращаем успешный статус сервера
         res.json({ 
-            status: 'error', 
-            message: 'Ошибка проверки API',
+            status: 'warning', 
+            message: '⚠️ Ошибка проверки API, но сервер работает',
             error: error.message
         });
     }

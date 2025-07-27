@@ -327,9 +327,10 @@
         }
 
         function updateButtonStates() {
-            const canStart = serverStatus === 'ok';
+            // Разрешаем работу при статусе 'ok' и 'warning'
+            const canStart = serverStatus === 'ok' || serverStatus === 'warning';
             
-            console.log('Сервер доступен:', canStart);
+            console.log('Сервер доступен:', canStart, 'Статус:', serverStatus);
             document.getElementById('enBtn').disabled = !canStart;
             document.getElementById('ruBtn').disabled = !canStart;
             document.getElementById('esBtn').disabled = !canStart;
@@ -338,7 +339,7 @@
         function selectLanguage(lang) {
             console.log('Попытка выбора языка:', lang);
             
-            if (serverStatus !== 'ok') {
+            if (serverStatus !== 'ok' && serverStatus !== 'warning') {
                 alert('Сервер недоступен. Попробуйте позже.');
                 return;
             }
