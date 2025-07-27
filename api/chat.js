@@ -200,10 +200,12 @@ module.exports = async (req, res) => {
         
         // Получаем прогресс оценки
         const assessmentProgress = req.body.assessmentProgress || { currentQuestion: 0, completed: false };
+        console.log('Получен прогресс оценки:', assessmentProgress);
         
         // Определяем, нужно ли дать следующий вопрос для оценки
         const userMessages = messages.filter(msg => msg.role === 'user');
         const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0; // Всегда даем следующий вопрос, если оценка не завершена
+        console.log('Должен дать оценку:', shouldGiveAssessment, 'Завершена:', assessmentProgress.completed, 'Сообщений пользователя:', userMessages.length);
         
         let responseContent;
         let newAssessmentProgress = { ...assessmentProgress };
@@ -211,6 +213,8 @@ module.exports = async (req, res) => {
         if (shouldGiveAssessment) {
             // Даем следующий вопрос для оценки
             const questionIndex = assessmentProgress.currentQuestion;
+            console.log('Даем вопрос оценки, индекс:', questionIndex);
+            
             if (questionIndex < 5) {
                 const question = assessmentQuestions[language][questionIndex];
                 const assessmentResponse = getAssessmentResponse(language, character, questionIndex);
@@ -223,17 +227,20 @@ module.exports = async (req, res) => {
                     newAssessmentProgress.completed = true;
                     responseContent += `\n\n🎉 Поздравляю! Вы завершили оценку уровня. Теперь я лучше понимаю ваш уровень и могу предложить более персонализированные материалы для изучения.`;
                 }
+                console.log('Обновленный прогресс:', newAssessmentProgress);
             } else {
                 // Если все вопросы заданы, используем обычные ответы
                 const responses = demoResponses[language][character];
                 const randomResponse = responses[Math.floor(Math.random() * responses.length)];
                 responseContent = randomResponse;
+                console.log('Все вопросы заданы, используем обычные ответы');
             }
         } else {
             // Используем обычные демо-ответы только если оценка завершена
             const responses = demoResponses[language][character];
             const randomResponse = responses[Math.floor(Math.random() * responses.length)];
             responseContent = randomResponse;
+            console.log('Оценка завершена, используем обычные ответы');
         }
         
         res.json({

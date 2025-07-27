@@ -699,6 +699,9 @@
                     ...messagesForServer
                 ];
 
+                const currentProgress = getAssessmentProgress();
+                console.log('Текущий прогресс оценки:', currentProgress);
+                
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
@@ -708,7 +711,7 @@
                         messages: messagesWithSystem,
                         language: selectedLanguage,
                         character: selectedCharacter,
-                        assessmentProgress: getAssessmentProgress()
+                        assessmentProgress: currentProgress
                     })
                 });
 
