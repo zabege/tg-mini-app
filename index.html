@@ -117,6 +117,57 @@
             cursor: not-allowed;
         }
 
+        .character-select {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .character-header h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .character-grid {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .character-card {
+            flex: 1;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .character-avatar {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .character-card h3 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .character-card p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
         .chat-container {
             display: none;
         }
@@ -220,6 +271,29 @@
             margin-bottom: 16px;
             text-align: center;
         }
+
+        .chat-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .clear-history-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body>
@@ -237,7 +311,6 @@
                     <span>Проверка подключения...</span>
                 </div>
             </div>
-
             <div class="language-buttons">
                 <button class="language-btn" onclick="selectLanguage('en')" id="enBtn">Английский</button>
                 <button class="language-btn" onclick="selectLanguage('ru')" id="ruBtn">Русский</button>
@@ -245,11 +318,35 @@
             </div>
         </div>
 
+        <!-- Выбор персонажа -->
+        <div id="characterSelect" class="character-select" style="display: none;">
+            <button class="back-btn" onclick="showMainMenu()">← Назад</button>
+            <div class="character-header">
+                <h2 id="characterTitle">Выберите персонажа для изучения <span id="selectedLanguageName"></span></h2>
+            </div>
+            <div class="character-grid">
+                <div class="character-card" onclick="selectCharacter('male')">
+                    <div class="character-avatar">👨</div>
+                    <h3>Мужчина</h3>
+                    <p id="maleDescription">Опытный преподаватель</p>
+                </div>
+                <div class="character-card" onclick="selectCharacter('female')">
+                    <div class="character-avatar">👩</div>
+                    <h3>Женщина</h3>
+                    <p id="femaleDescription">Дружелюбная наставница</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Чат -->
         <div id="chatContainer" class="chat-container">
-            <button class="back-btn" onclick="showMainMenu()">← Назад</button>
+            <button class="back-btn" onclick="showCharacterSelect()">← Назад</button>
             <div class="chat-header">
                 <h2 id="chatTitle">Чат</h2>
+                <div class="chat-info">
+                    <span id="chatLanguage"></span> • <span id="chatCharacter"></span>
+                    <button class="clear-history-btn" onclick="clearCurrentChat()" title="Очистить историю чата">🗑️</button>
+                </div>
             </div>
             <div id="errorContainer"></div>
             <div id="messages" class="messages"></div>
@@ -268,6 +365,7 @@
 
     <script>
         let selectedLanguage = null;
+        let selectedCharacter = null;
         let chatMessages = [];
         let serverStatus = 'loading';
 
@@ -282,6 +380,71 @@
             ru: 'Русский',
             es: 'Испанский'
         };
+
+        // Системные промпты для персонажей
+        const characterPrompts = {
+            male: {
+                en: "You are Alex, a friendly and patient English tutor with 5 years of teaching experience. You love helping students improve their language skills. You speak in a warm, encouraging manner and always provide constructive feedback. You adapt your teaching style to the student's level and make learning fun and engaging.",
+                ru: "Ты Алекс, дружелюбный и терпеливый преподаватель русского языка с 5-летним опытом преподавания. Ты любишь помогать студентам улучшать их языковые навыки. Ты говоришь тепло и ободряюще, всегда даешь конструктивную обратную связь. Ты адаптируешь свой стиль преподавания под уровень студента и делаешь обучение интересным и увлекательным.",
+                es: "Eres Alex, un tutor inglés amigable y paciente con 5 años de experiencia en enseñanza. Te encanta ayudar a los estudiantes a mejorar sus habilidades lingüísticas. Hablas de manera cálida y alentadora, siempre proporcionas retroalimentación constructiva. Adaptas tu estilo de enseñanza al nivel del estudiante y haces que el aprendizaje sea divertido y atractivo."
+            },
+            female: {
+                en: "You are Maria, a cheerful and supportive English tutor with 3 years of teaching experience. You enjoy helping students learn and speak the language confidently. You have a nurturing teaching style and create a comfortable learning environment. You focus on practical conversation skills and real-world applications.",
+                ru: "Ты Мария, дружелюбная и поддерживающая преподаватель русского языка с 3-летним опытом преподавания. Ты любишь помогать студентам учиться и уверенно говорить на языке. У тебя заботливый стиль преподавания, и ты создаешь комфортную среду для обучения. Ты фокусируешься на практических навыках разговора и реальном применении языка.",
+                es: "Eres Maria, una tutora inglesa alegre y solidaria con 3 años de experiencia en enseñanza. Te gusta ayudar a los estudiantes a aprender y hablar el idioma con confianza. Tienes un estilo de enseñanza nutritivo y creas un ambiente de aprendizaje cómodo. Te enfocas en habilidades de conversación práctica y aplicaciones del mundo real."
+            }
+        };
+
+        const characterDescriptions = {
+            male: {
+                en: "Alex - Experienced English tutor with 5 years of teaching",
+                ru: "Алекс - Опытный преподаватель русского языка с 5-летним стажем",
+                es: "Alex - Tutor inglés experimentado con 5 años de enseñanza"
+            },
+            female: {
+                en: "Maria - Friendly Spanish tutor with 3 years of experience",
+                ru: "Мария - Дружелюбная преподаватель русского языка с 3-летним опытом",
+                es: "Maria - Tutora española amigable con 3 años de experiencia"
+            }
+        };
+
+        // Функции для работы с историей чатов
+        function saveChatHistory() {
+            const chatKey = `chat_${selectedLanguage}_${selectedCharacter}`;
+            localStorage.setItem(chatKey, JSON.stringify(chatMessages));
+        }
+
+        function loadChatHistory() {
+            const chatKey = `chat_${selectedLanguage}_${selectedCharacter}`;
+            const saved = localStorage.getItem(chatKey);
+            if (saved) {
+                chatMessages = JSON.parse(saved);
+                return true;
+            }
+            return false;
+        }
+
+        function clearChatHistory() {
+            const chatKey = `chat_${selectedLanguage}_${selectedCharacter}`;
+            localStorage.removeItem(chatKey);
+        }
+
+        function clearCurrentChat() {
+            if (confirm('Вы уверены, что хотите очистить историю этого чата?')) {
+                clearChatHistory();
+                chatMessages = [];
+                
+                // Создаем новое приветственное сообщение
+                const characterName = selectedCharacter === 'male' ? 'Алекс' : 'Мария';
+                const welcomeMessage = {
+                    role: 'assistant',
+                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[selectedCharacter][selectedLanguage]}. Давайте начнем обучение!`
+                };
+                chatMessages = [welcomeMessage];
+                saveChatHistory();
+                renderMessages();
+            }
+        }
 
         // Проверяем статус сервера при загрузке
         window.onload = function() {
@@ -341,24 +504,53 @@
             console.log('Попытка выбора языка:', lang);
             
             selectedLanguage = lang;
-            chatMessages = [
-                { role: 'assistant', content: testPrompts[lang] }
-            ];
-            showChat();
+            document.getElementById('selectedLanguageName').textContent = languageNames[lang];
+            showCharacterSelect();
         }
 
-        function showChat() {
+        function showCharacterSelect() {
             document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('chatContainer').style.display = 'block';
-            document.getElementById('chatTitle').textContent = `Чат: ${languageNames[selectedLanguage]}`;
-            renderMessages();
+            document.getElementById('characterSelect').style.display = 'block';
+            document.getElementById('characterTitle').textContent = `Выберите персонажа для изучения ${languageNames[selectedLanguage]}`;
+            document.getElementById('maleDescription').textContent = characterDescriptions.male[selectedLanguage];
+            document.getElementById('femaleDescription').textContent = characterDescriptions.female[selectedLanguage];
+            selectedCharacter = null; // Сбрасываем выбранного персонажа при смене языка
         }
 
         function showMainMenu() {
             document.getElementById('mainMenu').style.display = 'block';
-            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('characterSelect').style.display = 'none';
             document.getElementById('messageInput').value = '';
             document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function selectCharacter(character) {
+            selectedCharacter = character;
+            
+            // Показываем чат
+            document.getElementById('characterSelect').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'block';
+            
+            // Обновляем заголовки
+            document.getElementById('chatTitle').textContent = `Чат: ${languageNames[selectedLanguage]}`;
+            document.getElementById('chatLanguage').textContent = languageNames[selectedLanguage];
+            document.getElementById('chatCharacter').textContent = character === 'male' ? 'Алекс' : 'Мария';
+            
+            // Загружаем историю чата или создаем новую
+            const hasHistory = loadChatHistory();
+            
+            if (!hasHistory) {
+                // Если истории нет, создаем приветственное сообщение
+                const characterName = character === 'male' ? 'Алекс' : 'Мария';
+                const welcomeMessage = {
+                    role: 'assistant',
+                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[character][selectedLanguage]}. Давайте начнем обучение!`
+                };
+                chatMessages = [welcomeMessage];
+                saveChatHistory();
+            }
+            
+            renderMessages();
         }
 
         function renderMessages() {
@@ -416,14 +608,22 @@
 
                 console.log('Отправка запроса к серверу...');
 
+                // Подготавливаем сообщения с системным промптом персонажа
+                const systemPrompt = characterPrompts[selectedCharacter][selectedLanguage];
+                const messagesWithSystem = [
+                    { role: 'system', content: systemPrompt },
+                    ...messagesForServer
+                ];
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        messages: messagesForServer,
-                        language: selectedLanguage
+                        messages: messagesWithSystem,
+                        language: selectedLanguage,
+                        character: selectedCharacter
                     })
                 });
 
@@ -450,6 +650,9 @@
                     role: 'assistant', 
                     content: responseContent 
                 });
+                
+                // Сохраняем историю чата
+                saveChatHistory();
 
             } catch (error) {
                 console.error('Error:', error);
@@ -482,6 +685,9 @@
                     role: 'assistant', 
                     content: randomResponse + '\n\n[Локальный демо-режим]'
                 });
+                
+                // Сохраняем историю чата
+                saveChatHistory();
                 
             } finally {
                 // Восстанавливаем кнопку
