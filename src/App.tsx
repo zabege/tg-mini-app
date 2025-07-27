@@ -34,21 +34,7 @@ import { setConnectionState } from './redux/connectionSlice';
 // Добавим тип для поддерживаемых языков
 type SupportedLanguage = 'en' | 'ru' | 'es';
 
-// Добавим объект переводов
-const translations: Record<SupportedLanguage, { welcome: string; selectLanguage: string }> = {
-    en: {
-        welcome: 'Welcome',
-        selectLanguage: 'Select language:',
-    },
-    ru: {
-        welcome: 'Добро пожаловать',
-        selectLanguage: 'Выберите язык:',
-    },
-    es: {
-        welcome: 'Bienvenido',
-        selectLanguage: 'Seleccione el idioma:',
-    },
-};
+
 
 // Добавим view для чата
 enum View {
@@ -66,7 +52,6 @@ const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || '';
 
 function App() {
     const [view, setView] = useState<View>(View.MAIN_MENU);
-    const [language, setLanguage] = useState<SupportedLanguage>('en');
     const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage | null>(null);
     const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
     const [userInput, setUserInput] = useState('');
@@ -260,17 +245,6 @@ function App() {
 
     return (
         <div className="flex flex-col h-full min-h-screen w-screen rounded-xl bg-customGrayWallet">
-            {/* Language Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 12 }}>
-                <span>{translations[language].selectLanguage}</span>
-                <select value={language} onChange={e => setLanguage(e.target.value as SupportedLanguage)}>
-                    <option value="en">English</option>
-                    <option value="ru">Русский</option>
-                    <option value="es">Español</option>
-                </select>
-            </div>
-            {/* Пример использования перевода */}
-            <h1 style={{ textAlign: 'center' }}>{translations[language].welcome}</h1>
             {view === View.MAIN_MENU && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
                     <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 24 }}>YourLanguageMate</h1>
