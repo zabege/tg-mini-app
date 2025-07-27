@@ -203,7 +203,7 @@ module.exports = async (req, res) => {
         
         // Определяем, нужно ли дать следующий вопрос для оценки
         const userMessages = messages.filter(msg => msg.role === 'user');
-        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0 && Math.random() < 0.6; // 60% вероятность дать следующий вопрос
+        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0 && Math.random() < 0.8; // 80% вероятность дать следующий вопрос
         
         let responseContent;
         let newAssessmentProgress = { ...assessmentProgress };

@@ -458,14 +458,42 @@
                 
                 chatMessages = [];
                 
-                // Создаем новое приветственное сообщение
+                // Создаем новое приветственное сообщение с первым вопросом оценки
                 const characterName = selectedCharacter === 'male' ? 'Алекс' : 'Мария';
+                const assessmentQuestions = {
+                    ru: [
+                        "Расскажите о себе: где вы учились, чем увлекаетесь?",
+                        "Прочитайте и перескажите короткий абзац текста (можно дать текст заранее).",
+                        "Как вы понимаете разницу между словами «ложить» и «класть»?",
+                        "Составьте связное предложение с использованием слов «тем не менее», «впрочем», «однако».",
+                        "Послушайте короткий отрывок (например, новость или диалог) и перескажите, о чём он."
+                    ],
+                    en: [
+                        "Can you introduce yourself and describe your daily routine?",
+                        "Listen to a short audio clip (e.g., weather forecast) and explain what you understood.",
+                        "What is the difference between present perfect and past simple? Give examples.",
+                        "Read a short paragraph and summarize it in your own words.",
+                        "Make a sentence using the words although, meanwhile, and however."
+                    ],
+                    es: [
+                        "¿Puedes presentarte y contarme cómo es un día típico para ti?",
+                        "Lee este párrafo corto y dime de qué trata (текст можно дать отдельно).",
+                        "¿Cuál es la diferencia entre los tiempos pretérito indefinido y pretérito imperfecto?",
+                        "Escucha este audio breve y dime qué ocurrió.",
+                        "Forma una oración con aunque, sin embargo, y mientras tanto."
+                    ]
+                };
+                
+                const firstQuestion = assessmentQuestions[selectedLanguage][0];
                 const welcomeMessage = {
                     role: 'assistant',
-                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[selectedCharacter][selectedLanguage]}. Давайте начнем обучение!`
+                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[selectedCharacter][selectedLanguage]}. Давайте начнем с оценки вашего уровня!\n\n**${firstQuestion}**`
                 };
                 chatMessages = [welcomeMessage];
                 saveChatHistory();
+                
+                // Инициализируем прогресс оценки
+                saveAssessmentProgress({ currentQuestion: 1, completed: false });
                 renderMessages();
             }
         }
@@ -568,14 +596,42 @@
             const hasHistory = loadChatHistory();
             
             if (!hasHistory) {
-                // Если истории нет, создаем приветственное сообщение
+                // Если истории нет, создаем приветственное сообщение с первым вопросом оценки
                 const characterName = character === 'male' ? 'Алекс' : 'Мария';
+                const assessmentQuestions = {
+                    ru: [
+                        "Расскажите о себе: где вы учились, чем увлекаетесь?",
+                        "Прочитайте и перескажите короткий абзац текста (можно дать текст заранее).",
+                        "Как вы понимаете разницу между словами «ложить» и «класть»?",
+                        "Составьте связное предложение с использованием слов «тем не менее», «впрочем», «однако».",
+                        "Послушайте короткий отрывок (например, новость или диалог) и перескажите, о чём он."
+                    ],
+                    en: [
+                        "Can you introduce yourself and describe your daily routine?",
+                        "Listen to a short audio clip (e.g., weather forecast) and explain what you understood.",
+                        "What is the difference between present perfect and past simple? Give examples.",
+                        "Read a short paragraph and summarize it in your own words.",
+                        "Make a sentence using the words although, meanwhile, and however."
+                    ],
+                    es: [
+                        "¿Puedes presentarte y contarme cómo es un día típico para ti?",
+                        "Lee este párrafo corto y dime de qué trata (текст можно дать отдельно).",
+                        "¿Cuál es la diferencia entre los tiempos pretérito indefinido y pretérito imperfecto?",
+                        "Escucha este audio breve y dime qué ocurrió.",
+                        "Forma una oración con aunque, sin embargo, y mientras tanto."
+                    ]
+                };
+                
+                const firstQuestion = assessmentQuestions[selectedLanguage][0];
                 const welcomeMessage = {
                     role: 'assistant',
-                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[character][selectedLanguage]}. Давайте начнем обучение!`
+                    content: `Привет! Я ${characterName}, ваш преподаватель ${languageNames[selectedLanguage].toLowerCase()}. ${characterDescriptions[character][selectedLanguage]}. Давайте начнем с оценки вашего уровня!\n\n**${firstQuestion}**`
                 };
                 chatMessages = [welcomeMessage];
                 saveChatHistory();
+                
+                // Инициализируем прогресс оценки
+                saveAssessmentProgress({ currentQuestion: 1, completed: false });
             }
             
             renderMessages();
