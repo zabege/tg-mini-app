@@ -1,3 +1,6 @@
+// Простой тест для проверки работы API
+console.log('API chat.js загружен');
+
 // Демо-ответы для каждого языка
 const demoResponses = {
     en: {
@@ -179,6 +182,14 @@ module.exports = async (req, res) => {
         return;
     }
 
+    if (req.method === 'GET') {
+        return res.json({ 
+            message: 'API chat работает!',
+            timestamp: new Date().toISOString(),
+            status: 'ok'
+        });
+    }
+    
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
