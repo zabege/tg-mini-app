@@ -198,19 +198,37 @@ module.exports = async (req, res) => {
         // Имитируем задержку для реалистичности
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
         
-        // Определяем, нужно ли дать вопрос для оценки
-        const isFirstMessage = messages.length === 1 || (messages.length === 2 && messages[0].role === 'system');
-        const shouldGiveAssessment = isFirstMessage && Math.random() < 0.7; // 70% вероятность дать вопрос оценки
+        // Получаем прогресс оценки
+        const assessmentProgress = req.body.assessmentProgress || { currentQuestion: 0, completed: false };
+        
+        // Определяем, нужно ли дать следующий вопрос для оценки
+        const userMessages = messages.filter(msg => msg.role === 'user');
+        const shouldGiveAssessment = !assessmentProgress.completed && userMessages.length > 0 && Math.random() < 0.6; // 60% вероятность дать следующий вопрос
         
         let responseContent;
+        let newAssessmentProgress = { ...assessmentProgress };
         
         if (shouldGiveAssessment) {
-            // Даем вопрос для оценки
-            const questionIndex = Math.floor(Math.random() * 5);
-            const question = assessmentQuestions[language][questionIndex];
-            const assessmentResponse = getAssessmentResponse(language, character, questionIndex);
-            
-            responseContent = `Отлично! Давайте оценим ваш уровень. Вот вопрос для вас:\n\n**${question}**\n\n${assessmentResponse}`;
+            // Даем следующий вопрос для оценки
+            const questionIndex = assessmentProgress.currentQuestion;
+            if (questionIndex < 5) {
+                const question = assessmentQuestions[language][questionIndex];
+                const assessmentResponse = getAssessmentResponse(language, character, questionIndex);
+                
+                responseContent = `Отлично! Вот следующий вопрос для оценки вашего уровня:\n\n**${question}**\n\n${assessmentResponse}`;
+                
+                // Обновляем прогресс
+                newAssessmentProgress.currentQuestion = questionIndex + 1;
+                if (newAssessmentProgress.currentQuestion >= 5) {
+                    newAssessmentProgress.completed = true;
+                    responseContent += `\n\n🎉 Поздравляю! Вы завершили оценку уровня. Теперь я лучше понимаю ваш уровень и могу предложить более персонализированные материалы для изучения.`;
+                }
+            } else {
+                // Если все вопросы заданы, используем обычные ответы
+                const responses = demoResponses[language][character];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                responseContent = randomResponse;
+            }
         } else {
             // Используем обычные демо-ответы
             const responses = demoResponses[language][character];
@@ -222,7 +240,8 @@ module.exports = async (req, res) => {
             message: responseContent,
             api: 'demo',
             mode: 'demo',
-            character: character
+            character: character,
+            assessmentProgress: newAssessmentProgress
         });
 
     } catch (error) {
@@ -238,7 +257,8 @@ module.exports = async (req, res) => {
                 message: randomResponse,
                 api: 'demo',
                 mode: 'error-fallback',
-                character: character
+                character: character,
+                assessmentProgress: assessmentProgress
             });
         } else {
             res.status(500).json({ 

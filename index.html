@@ -429,9 +429,26 @@
             localStorage.removeItem(chatKey);
         }
 
+        // Функция для отслеживания прогресса оценки
+        function getAssessmentProgress() {
+            const chatKey = `assessment_${selectedLanguage}_${selectedCharacter}`;
+            const saved = localStorage.getItem(chatKey);
+            return saved ? JSON.parse(saved) : { currentQuestion: 0, completed: false };
+        }
+
+        function saveAssessmentProgress(progress) {
+            const chatKey = `assessment_${selectedLanguage}_${selectedCharacter}`;
+            localStorage.setItem(chatKey, JSON.stringify(progress));
+        }
+
         function clearCurrentChat() {
             if (confirm('Вы уверены, что хотите очистить историю этого чата?')) {
                 clearChatHistory();
+                
+                // Сбрасываем прогресс оценки
+                const assessmentKey = `assessment_${selectedLanguage}_${selectedCharacter}`;
+                localStorage.removeItem(assessmentKey);
+                
                 chatMessages = [];
                 
                 // Создаем новое приветственное сообщение
@@ -627,7 +644,8 @@
                     body: JSON.stringify({
                         messages: messagesWithSystem,
                         language: selectedLanguage,
-                        character: selectedCharacter
+                        character: selectedCharacter,
+                        assessmentProgress: getAssessmentProgress()
                     })
                 });
 
@@ -654,6 +672,11 @@
                     role: 'assistant', 
                     content: responseContent 
                 });
+                
+                // Сохраняем прогресс оценки, если он есть
+                if (data.assessmentProgress) {
+                    saveAssessmentProgress(data.assessmentProgress);
+                }
                 
                 // Сохраняем историю чата
                 saveChatHistory();
