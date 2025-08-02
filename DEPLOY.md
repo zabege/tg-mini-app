@@ -29,7 +29,7 @@ git push -u origin main
 В Railway Dashboard:
 1. Перейдите в раздел "Variables"
 2. Добавьте переменные:
-                  - `BOT_TOKEN` = `8280169857:AAFy3fX9gC3GtXv31hyvCRVwhTXKbwX0h4Y`
+                  - `BOT_TOKEN` = `your_bot_token_here`
    - `FOOTBALL_API_KEY` = `2e2ce24f4bf442b5bcb6bc35d920070b`
    - `ALLOWED_USERS` = (оставьте пустым для публичного доступа)
 

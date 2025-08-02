@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Telegram Bot Token
-BOT_TOKEN = os.getenv('BOT_TOKEN', '8280169857:AAFy3fX9gC3GtXv31hyvCRVwhTXKbwX0h4Y')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '')
 
 # Разрешенные пользователи (Telegram ID)
 # Убрали ограничения - теперь любой пользователь может использовать бота
