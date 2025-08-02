@@ -39,11 +39,12 @@ class FootballBetBot:
         welcome_text = f"""
 🤖 **Добро пожаловать в Football Bet Bot!**
 
-Привет, {user.first_name}! Я помогу тебе делать ставки на матчи Real Madrid vs Barcelona.
+Привет, {user.first_name}! Я помогу тебе делать ставки на матчи Real Madrid и Barcelona.
 
 **📋 Доступные команды:**
-/matches - Список предстоящих матчей
-/bet - Сделать ставку
+/calendar - 10 ближайших матчей
+/next - Ближайший матч
+/bet - Сделать ставку (10 ближайших)
 /standings - Таблица результатов
 /help - Справка
 
@@ -52,7 +53,7 @@ class FootballBetBot:
 • 3 балла за угаданный точный счет
 • 4 балла за угаданные и победителя, и счет
 
-Начни с команды /matches чтобы увидеть предстоящие матчи!
+Начни с команды /calendar чтобы увидеть ближайшие матчи!
         """
         
         await update.message.reply_text(welcome_text, parse_mode='Markdown')
@@ -71,8 +72,7 @@ class FootballBetBot:
 📋 **Доступные команды:**
 
 /start - Начать работу с ботом
-/matches - Показать все матчи Real Madrid и Barcelona
-/calendar - Календарь (10 ближайших матчей каждой команды)
+/calendar - 10 ближайших матчей
 /next - Ближайший матч
 /bet - Разместить ставку (10 ближайших матчей)
 /standings - Показать таблицу результатов
@@ -135,7 +135,7 @@ class FootballBetBot:
         await update.message.reply_text(matches_text, parse_mode='Markdown')
     
     async def calendar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Обработчик команды /calendar - показывает 10 ближайших матчей каждой команды"""
+        """Обработчик команды /calendar - показывает 10 ближайших матчей"""
         user_id = update.effective_user.id
         
         # Проверяем доступ только если список ALLOWED_USERS не пустой
@@ -143,51 +143,32 @@ class FootballBetBot:
             return
         
         try:
-            # Получаем ближайшие матчи
-            matches = self.football_api.get_next_matches(20)  # 10 матчей каждой команды
+            # Получаем 10 ближайших матчей
+            matches = self.football_api.get_next_matches(10)
             
             if not matches:
                 await update.message.reply_text("❌ Не удалось получить матчи.")
                 return
             
-            # Разделяем матчи по командам
-            real_madrid_matches = []
-            barcelona_matches = []
-            
-            for match in matches:
-                home_team = match['homeTeam']['name']
-                away_team = match['awayTeam']['name']
-                
-                if 'Real Madrid' in home_team or 'Real Madrid' in away_team:
-                    real_madrid_matches.append(match)
-                if 'Barcelona' in home_team or 'Barcelona' in away_team:
-                    barcelona_matches.append(match)
-            
             # Формируем текст
-            calendar_text = "📅 **Календарь ближайших матчей:**\n\n"
+            calendar_text = "📅 **10 ближайших матчей:**\n\n"
             
-            # Real Madrid матчи
-            calendar_text += "⚪ **Real Madrid - ближайшие 10 матчей:**\n"
-            for i, match in enumerate(real_madrid_matches[:10], 1):
+            for i, match in enumerate(matches, 1):
                 home_team = match['homeTeam']['name']
                 away_team = match['awayTeam']['name']
                 match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
                 formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
                 competition = match['competition']['name']
                 
-                calendar_text += f"{i}. **{home_team} vs {away_team}**\n"
-                calendar_text += f"   📅 {formatted_date} | 🏆 {competition}\n\n"
-            
-            # Barcelona матчи
-            calendar_text += "🔵 **Barcelona - ближайшие 10 матчей:**\n"
-            for i, match in enumerate(barcelona_matches[:10], 1):
-                home_team = match['homeTeam']['name']
-                away_team = match['awayTeam']['name']
-                match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
-                formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
-                competition = match['competition']['name']
+                # Добавляем эмодзи для команд
+                if 'Real Madrid' in home_team or 'Real Madrid' in away_team:
+                    team_emoji = "⚪"
+                elif 'Barcelona' in home_team or 'Barcelona' in away_team:
+                    team_emoji = "🔵"
+                else:
+                    team_emoji = "⚽"
                 
-                calendar_text += f"{i}. **{home_team} vs {away_team}**\n"
+                calendar_text += f"{i}. {team_emoji} **{home_team} vs {away_team}**\n"
                 calendar_text += f"   📅 {formatted_date} | 🏆 {competition}\n\n"
             
             await update.message.reply_text(calendar_text, parse_mode='Markdown')
