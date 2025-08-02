@@ -12,7 +12,7 @@ ALLOWED_USERS = []  # Пустой список означает доступ д
 
 # API для футбольных данных
 # Получите бесплатный ключ на https://www.football-data.org/
-FOOTBALL_API_KEY = os.getenv('FOOTBALL_API_KEY', '')  # Добавьте ваш ключ здесь
+FOOTBALL_API_KEY = "2e2ce24f4bf442b5bcb6bc35d920070b"  # Ваш API ключ
 FOOTBALL_API_BASE_URL = 'https://api.football-data.org/v4'
 
 # Команды Real Madrid и Barcelona
