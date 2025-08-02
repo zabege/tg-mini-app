@@ -46,11 +46,13 @@ class FootballAPI:
             # Получаем матчи Real Madrid
             print("🔍 Получаю матчи Real Madrid...")
             real_madrid_matches = self._get_team_matches(REAL_MADRID_ID, "2025-08-01", "2026-07-31")
+            print(f"   Найдено {len(real_madrid_matches)} матчей Real Madrid")
             all_matches.extend(real_madrid_matches)
             
             # Получаем матчи Barcelona
             print("🔍 Получаю матчи Barcelona...")
             barcelona_matches = self._get_team_matches(BARCELONA_ID, "2025-08-01", "2026-07-31")
+            print(f"   Найдено {len(barcelona_matches)} матчей Barcelona")
             all_matches.extend(barcelona_matches)
             
             # Убираем дубликаты (матчи между Real Madrid и Barcelona)
@@ -66,7 +68,11 @@ class FootballAPI:
             # Сортируем по дате
             unique_matches.sort(key=lambda x: x['utcDate'])
             
-            print(f"✅ Найдено {len(unique_matches)} матчей")
+            print(f"✅ Всего уникальных матчей: {len(unique_matches)}")
+            print(f"   Real Madrid: {len(real_madrid_matches)}")
+            print(f"   Barcelona: {len(barcelona_matches)}")
+            print(f"   Дубликаты убраны: {len(all_matches) - len(unique_matches)}")
+            
             return unique_matches
             
         except requests.RequestException as e:
