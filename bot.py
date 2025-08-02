@@ -66,28 +66,29 @@ class FootballBetBot:
             return
         
         help_text = """
-📖 **Справка по командам:**
+🤖 **Football Bet Bot - Помощь**
 
-**/start** - Приветствие и инструкция
-**/matches** - Показать список предстоящих матчей
-**/bet** - Начать процесс размещения ставки
-**/standings** - Показать таблицу результатов
-**/help** - Эта справка
+📋 **Доступные команды:**
 
-**🎯 Как делать ставки:**
-1. Используйте /matches для просмотра матчей
-2. Выберите /bet для размещения ставки
-3. Выберите матч из списка
-4. Укажите победителя (Домашняя команда / Ничья / Гостевая команда)
-5. Введите предполагаемый счет (например: 2:1)
+/start - Начать работу с ботом
+/matches - Показать все матчи Real Madrid и Barcelona
+/calendar - Календарь (10 ближайших матчей каждой команды)
+/next - Ближайший матч
+/bet - Разместить ставку (10 ближайших матчей)
+/standings - Показать таблицу результатов
+/help - Показать эту справку
 
-**🏆 Система баллов:**
+🎯 **Как делать ставки:**
+1. Используйте /bet для выбора матча
+2. Выберите предполагаемого победителя
+3. Введите предполагаемый счет (например: 2:1)
+
+💰 **Система баллов:**
 • 1 балл за угаданного победителя
 • 3 балла за угаданный точный счет
 • 4 балла за угаданные и победителя, и счет
-• 0 баллов, если ничего не угадано
 
-**⚽ Ставки принимаются только на матчи Real Madrid vs Barcelona**
+⚽ Ставки принимаются только на предстоящие матчи!
         """
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
@@ -133,37 +134,164 @@ class FootballBetBot:
         
         await update.message.reply_text(matches_text, parse_mode='Markdown')
     
-    async def bet(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Обработчик команды /bet"""
+    async def calendar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /calendar - показывает 10 ближайших матчей каждой команды"""
         user_id = update.effective_user.id
         
         # Проверяем доступ только если список ALLOWED_USERS не пустой
         if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
-        # Получаем предстоящие матчи
-        matches = self.db.get_upcoming_matches()
+        try:
+            # Получаем ближайшие матчи
+            matches = self.football_api.get_next_matches(20)  # 10 матчей каждой команды
+            
+            if not matches:
+                await update.message.reply_text("❌ Не удалось получить матчи.")
+                return
+            
+            # Разделяем матчи по командам
+            real_madrid_matches = []
+            barcelona_matches = []
+            
+            for match in matches:
+                home_team = match['homeTeam']['name']
+                away_team = match['awayTeam']['name']
+                
+                if 'Real Madrid' in home_team or 'Real Madrid' in away_team:
+                    real_madrid_matches.append(match)
+                if 'Barcelona' in home_team or 'Barcelona' in away_team:
+                    barcelona_matches.append(match)
+            
+            # Формируем текст
+            calendar_text = "📅 **Календарь ближайших матчей:**\n\n"
+            
+            # Real Madrid матчи
+            calendar_text += "⚪ **Real Madrid - ближайшие 10 матчей:**\n"
+            for i, match in enumerate(real_madrid_matches[:10], 1):
+                home_team = match['homeTeam']['name']
+                away_team = match['awayTeam']['name']
+                match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+                formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
+                competition = match['competition']['name']
+                
+                calendar_text += f"{i}. **{home_team} vs {away_team}**\n"
+                calendar_text += f"   📅 {formatted_date} | 🏆 {competition}\n\n"
+            
+            # Barcelona матчи
+            calendar_text += "🔵 **Barcelona - ближайшие 10 матчей:**\n"
+            for i, match in enumerate(barcelona_matches[:10], 1):
+                home_team = match['homeTeam']['name']
+                away_team = match['awayTeam']['name']
+                match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+                formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
+                competition = match['competition']['name']
+                
+                calendar_text += f"{i}. **{home_team} vs {away_team}**\n"
+                calendar_text += f"   📅 {formatted_date} | 🏆 {competition}\n\n"
+            
+            await update.message.reply_text(calendar_text, parse_mode='Markdown')
+            
+        except Exception as e:
+            print(f"Ошибка при получении календаря: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при получении календаря.")
+    
+    async def next_match(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /next - показывает ближайший матч"""
+        user_id = update.effective_user.id
         
-        if not matches:
-            await update.message.reply_text("❌ Нет доступных матчей для ставок. Попробуйте позже.")
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
-        # Создаем клавиатуру с матчами
-        keyboard = []
-        for match in matches:
-            match_text = f"{match[2]} vs {match[3]} - {match[5]}"
-            keyboard.append([InlineKeyboardButton(match_text, callback_data=f"match_{match[0]}")])
+        try:
+            # Получаем ближайший матч
+            match = self.football_api.get_nearest_match()
+            
+            if not match:
+                await update.message.reply_text("❌ Не удалось получить ближайший матч.")
+                return
+            
+            # Формируем информацию о матче
+            home_team = match['homeTeam']['name']
+            away_team = match['awayTeam']['name']
+            match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+            formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
+            competition = match['competition']['name']
+            
+            # Вычисляем время до матча
+            now = datetime.now(match_date.tzinfo)
+            time_until = match_date - now
+            
+            if time_until.days > 0:
+                time_text = f"через {time_until.days} дней"
+            elif time_until.seconds > 3600:
+                hours = time_until.seconds // 3600
+                time_text = f"через {hours} часов"
+            else:
+                minutes = time_until.seconds // 60
+                time_text = f"через {minutes} минут"
+            
+            next_match_text = f"""
+⚽ **БЛИЖАЙШИЙ МАТЧ**
+
+🏟️ **{home_team} vs {away_team}**
+📅 **Дата:** {formatted_date}
+⏰ **До матча:** {time_text}
+🏆 **Турнир:** {competition}
+
+🎯 Готовы сделать ставку? Используйте /bet!
+            """
+            
+            await update.message.reply_text(next_match_text, parse_mode='Markdown')
+            
+        except Exception as e:
+            print(f"Ошибка при получении ближайшего матча: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при получении ближайшего матча.")
+    
+    async def bet(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /bet - показывает 10 ближайших матчей для ставок"""
+        user_id = update.effective_user.id
         
-        keyboard.append([InlineKeyboardButton("❌ Отмена", callback_data="cancel")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+            return
         
-        await update.message.reply_text(
-            "⚽ **Выберите матч для ставки:**",
-            reply_markup=reply_markup,
-            parse_mode='Markdown'
-        )
-        
-        return CHOOSING_MATCH
+        try:
+            # Получаем 10 ближайших матчей для ставок
+            matches = self.football_api.get_upcoming_matches_for_betting(10)
+            
+            if not matches:
+                await update.message.reply_text("❌ Нет доступных матчей для ставок. Попробуйте позже.")
+                return
+            
+            # Создаем клавиатуру с матчами
+            keyboard = []
+            for match in matches:
+                home_team = match['homeTeam']['name']
+                away_team = match['awayTeam']['name']
+                match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+                formatted_date = match_date.strftime('%d.%m %H:%M')
+                competition = match['competition']['name']
+                
+                match_text = f"{home_team} vs {away_team} - {formatted_date}"
+                keyboard.append([InlineKeyboardButton(match_text, callback_data=f"match_{match['id']}")])
+            
+            keyboard.append([InlineKeyboardButton("❌ Отмена", callback_data="cancel")])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                "⚽ **Выберите матч для ставки (10 ближайших):**",
+                reply_markup=reply_markup,
+                parse_mode='Markdown'
+            )
+            
+            return CHOOSING_MATCH
+            
+        except Exception as e:
+            print(f"Ошибка при получении матчей для ставок: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при получении матчей.")
+            return ConversationHandler.END
     
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик нажатий на кнопки"""
@@ -182,7 +310,15 @@ class FootballBetBot:
         
         if query.data.startswith("match_"):
             match_id = int(query.data.split("_")[1])
-            match = self.db.get_match(match_id)
+            
+            # Получаем матч из API данных
+            matches = self.football_api.get_upcoming_matches_for_betting(10)
+            match = None
+            
+            for m in matches:
+                if m['id'] == match_id:
+                    match = m
+                    break
             
             if not match:
                 await query.edit_message_text("❌ Матч не найден.")
@@ -192,18 +328,25 @@ class FootballBetBot:
             context.user_data['selected_match'] = match
             
             # Создаем клавиатуру для выбора победителя
+            home_team = match['homeTeam']['name']
+            away_team = match['awayTeam']['name']
+            
             keyboard = [
-                [InlineKeyboardButton(f"🏠 {match[2]} (Домашняя)", callback_data="winner_home")],
+                [InlineKeyboardButton(f"🏠 {home_team} (Домашняя)", callback_data="winner_home")],
                 [InlineKeyboardButton("🤝 Ничья", callback_data="winner_draw")],
-                [InlineKeyboardButton(f"✈️ {match[3]} (Гостевая)", callback_data="winner_away")],
+                [InlineKeyboardButton(f"✈️ {away_team} (Гостевая)", callback_data="winner_away")],
                 [InlineKeyboardButton("❌ Отмена", callback_data="cancel")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
+            match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+            formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
+            competition = match['competition']['name']
+            
             await query.edit_message_text(
-                f"⚽ **{match[2]} vs {match[3]}**\n\n"
-                f"📅 {match[4]}\n"
-                f"🏆 {match[5]}\n\n"
+                f"⚽ **{home_team} vs {away_team}**\n\n"
+                f"📅 {formatted_date}\n"
+                f"🏆 {competition}\n\n"
                 "🎯 **Кто победит?**",
                 reply_markup=reply_markup,
                 parse_mode='Markdown'
@@ -229,9 +372,9 @@ class FootballBetBot:
     def _get_winner_text(self, winner, match):
         """Получение текстового представления победителя"""
         if winner == 'home':
-            return f"🏠 {match[2]}"
+            return f"🏠 {match['homeTeam']['name']}"
         elif winner == 'away':
-            return f"✈️ {match[3]}"
+            return f"✈️ {match['awayTeam']['name']}"
         else:
             return "🤝 Ничья"
     
@@ -262,21 +405,33 @@ class FootballBetBot:
         match = context.user_data['selected_match']
         predicted_winner = context.user_data['predicted_winner']
         
+        # Сначала сохраняем матч в базу данных, если его там нет
+        self.db.add_match(
+            match['id'],
+            match['homeTeam']['name'],
+            match['awayTeam']['name'],
+            match['utcDate'],
+            match['competition']['name']
+        )
+        
         bet_id = self.db.add_bet(
             user_id,
-            match[0],
+            match['id'],
             predicted_winner,
             home_score,
             away_score
         )
         
         # Формируем подтверждение ставки
+        match_date = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
+        formatted_date = match_date.strftime('%d.%m.%Y %H:%M')
+        
         confirmation_text = f"""
 ✅ **Ставка размещена успешно!**
 
-⚽ **Матч:** {match[2]} vs {match[3]}
-📅 **Дата:** {match[4]}
-🏆 **Турнир:** {match[5]}
+⚽ **Матч:** {match['homeTeam']['name']} vs {match['awayTeam']['name']}
+📅 **Дата:** {formatted_date}
+🏆 **Турнир:** {match['competition']['name']}
 
 🎯 **Ваш прогноз:**
 • Победитель: {self._get_winner_text(predicted_winner, match)}
@@ -344,6 +499,8 @@ def main():
     application.add_handler(CommandHandler("start", bot.start))
     application.add_handler(CommandHandler("help", bot.help_command))
     application.add_handler(CommandHandler("matches", bot.matches))
+    application.add_handler(CommandHandler("calendar", bot.calendar))
+    application.add_handler(CommandHandler("next", bot.next_match))
     application.add_handler(CommandHandler("standings", bot.standings))
     
     # Добавляем ConversationHandler для ставок

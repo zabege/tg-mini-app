@@ -42,6 +42,27 @@ class FootballAPI:
         print(f"✅ Загружено {len(matches)} матчей")
         return matches
     
+    def get_next_matches(self, count=10):
+        """Получение ближайших матчей (по дате)"""
+        matches = self._get_demo_matches()
+        # Сортируем по дате и берем первые count матчей
+        sorted_matches = sorted(matches, key=lambda x: x['utcDate'])
+        return sorted_matches[:count]
+    
+    def get_nearest_match(self):
+        """Получение ближайшего матча"""
+        matches = self._get_demo_matches()
+        # Сортируем по дате и берем первый
+        sorted_matches = sorted(matches, key=lambda x: x['utcDate'])
+        return sorted_matches[0] if sorted_matches else None
+    
+    def get_upcoming_matches_for_betting(self, count=10):
+        """Получение ближайших матчей для ставок"""
+        matches = self._get_demo_matches()
+        # Сортируем по дате и берем первые count матчей
+        sorted_matches = sorted(matches, key=lambda x: x['utcDate'])
+        return sorted_matches[:count]
+    
     def _get_team_matches(self, team_id, date_from, date_to):
         """Получение матчей команды за период"""
         url = f"{self.base_url}/teams/{team_id}/matches"
