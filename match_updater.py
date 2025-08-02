@@ -1,5 +1,6 @@
 import time
 import schedule
+import sqlite3
 from datetime import datetime, timedelta
 from database import Database
 from football_api import FootballAPI
@@ -15,7 +16,7 @@ class MatchUpdater:
         print(f"🔄 Проверка завершенных матчей... {datetime.now()}")
         
         # Получаем матчи, которые должны были завершиться
-        with self.db.db_path as conn:
+        with sqlite3.connect(self.db.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, api_match_id, home_team, away_team, match_date
@@ -51,7 +52,7 @@ class MatchUpdater:
     
     def calculate_points_for_match(self, match_id):
         """Расчет баллов для всех ставок на конкретный матч"""
-        with self.db.db_path as conn:
+        with sqlite3.connect(self.db.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id FROM bets WHERE match_id = ? AND points_earned = 0

@@ -4,14 +4,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Telegram Bot Token
-BOT_TOKEN = os.getenv('BOT_TOKEN')
+BOT_TOKEN = "8280169857:AAGHVVwZ77kbFjzuvqPcRKyk96R2U8WsGuc"
 
 # Разрешенные пользователи (Telegram ID)
-ALLOWED_USERS = [
-    # Замените на реальные Telegram ID пользователей
-    123456789,  # ID первого пользователя
-    987654321   # ID второго пользователя
-]
+# Убрали ограничения - теперь любой пользователь может использовать бота
+ALLOWED_USERS = []  # Пустой список означает доступ для всех
 
 # API для футбольных данных
 FOOTBALL_API_KEY = os.getenv('FOOTBALL_API_KEY', '')

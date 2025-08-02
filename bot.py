@@ -27,7 +27,8 @@ class FootballBetBot:
         """Обработчик команды /start"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             await update.message.reply_text("⛔ Доступ запрещен. Бот предназначен только для определенных пользователей.")
             return
         
@@ -60,7 +61,8 @@ class FootballBetBot:
         """Обработчик команды /help"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
         help_text = """
@@ -94,7 +96,8 @@ class FootballBetBot:
         """Обработчик команды /matches"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
         await update.message.reply_text("🔍 Получаю список матчей...")
@@ -134,7 +137,8 @@ class FootballBetBot:
         """Обработчик команды /bet"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
         # Получаем предстоящие матчи
@@ -168,7 +172,8 @@ class FootballBetBot:
         
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
         if query.data == "cancel":
@@ -234,7 +239,8 @@ class FootballBetBot:
         """Обработчик ввода счета"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return ConversationHandler.END
         
         score_text = update.message.text.strip()
@@ -295,7 +301,8 @@ class FootballBetBot:
         """Обработчик команды /standings"""
         user_id = update.effective_user.id
         
-        if user_id not in ALLOWED_USERS:
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
             return
         
         standings = self.db.get_standings()
