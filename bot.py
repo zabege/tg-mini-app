@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Состояния для ConversationHandler
-CHOOSING_MATCH, CHOOSING_WINNER, ENTERING_SCORE = range(3)
+SELECTING_MATCH, SELECTING_WINNER, ENTERING_SCORE = range(3)
 
 class FootballBetBot:
     def __init__(self):
