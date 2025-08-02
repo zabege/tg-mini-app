@@ -11,7 +11,8 @@ BOT_TOKEN = "8280169857:AAGHVVwZ77kbFjzuvqPcRKyk96R2U8WsGuc"
 ALLOWED_USERS = []  # Пустой список означает доступ для всех
 
 # API для футбольных данных
-FOOTBALL_API_KEY = os.getenv('FOOTBALL_API_KEY', '')
+# Получите бесплатный ключ на https://www.football-data.org/
+FOOTBALL_API_KEY = os.getenv('FOOTBALL_API_KEY', '')  # Добавьте ваш ключ здесь
 FOOTBALL_API_BASE_URL = 'https://api.football-data.org/v4'
 
 # Команды Real Madrid и Barcelona
