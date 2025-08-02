@@ -100,6 +100,8 @@ celerybeat.pid
 
 # Our project specific files
 .env
+.env.local
+.env.production
 bot_data.json
 football_bets.db
 *.json
@@ -113,6 +115,11 @@ football_bets.db
 !bot.py
 !database.py
 !football_api.py
+
+# Token files
+token.txt
+secrets.txt
+*.key
 
 # Vercel files (we don't need them for Railway)
 .vercel/

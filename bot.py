@@ -106,31 +106,63 @@ class FootballBetBot:
             return
         
         help_text = """
-🤖 **Football Bet Bot - Помощь**
+🤖 **Football Bet Bot - Справка**
 
 📋 **Доступные команды:**
+• `/start` - Начать работу с ботом
+• `/calendar` - Календарь ближайших матчей
+• `/next` - Ближайший матч
+• `/bet` - Сделать ставку
+• `/standings` - Таблица результатов
+• `/stats` - Статистика базы данных
+• `/help` - Эта справка
 
-/start - Начать работу с ботом
-/calendar - 10 ближайших матчей
-/next - Ближайший матч
-/bet - Разместить ставку (10 ближайших матчей)
-/standings - Показать таблицу результатов
-/help - Показать эту справку
-
-🎯 **Как делать ставки:**
-1. Используйте /bet для выбора матча
-2. Выберите предполагаемого победителя
-3. Введите предполагаемый счет (например: 2:1)
-
-💰 **Система баллов:**
+🎯 **Правила начисления баллов:**
 • 1 балл за угаданного победителя
 • 3 балла за угаданный точный счет
 • 4 балла за угаданные и победителя, и счет
 
-⚽ Ставки принимаются только на предстоящие матчи!
+⚽ **Поддерживаемые команды:**
+• Реал Мадрид
+• Барселона
+
+Удачных ставок! 🍀
         """
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
+    
+    async def stats(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /stats - статистика базы данных"""
+        user_id = update.effective_user.id
+        
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+            return
+        
+        # Получаем статистику
+        total_users = len(self.db.users)
+        total_matches = len(self.db.matches)
+        total_bets = len(self.db.bets)
+        
+        # Подсчитываем завершенные матчи
+        finished_matches = sum(1 for match in self.db.matches.values() if match['status'] == 'finished')
+        
+        # Подсчитываем общие баллы
+        total_points = sum(bet['points'] for bet in self.db.bets.values())
+        
+        stats_text = f"""
+📊 **Статистика базы данных:**
+
+👥 **Пользователи:** {total_users}
+⚽ **Матчи:** {total_matches} (завершено: {finished_matches})
+💰 **Ставки:** {total_bets}
+🏆 **Общие баллы:** {total_points}
+
+📁 **Файл данных:** `bot_data.json`
+🔄 **Последнее обновление:** {datetime.now().strftime('%d.%m.%Y %H:%M')}
+        """
+        
+        await update.message.reply_text(stats_text, parse_mode='Markdown')
     
     async def matches(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик команды /matches"""
@@ -524,10 +556,34 @@ def main():
     # Устанавливаем обработчик для освобождения блокировки при завершении
     atexit.register(bot.release_lock)
     
+    # Инициализируем приложение
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    # Добавляем обработчики команд
+    application.add_handler(CommandHandler("start", bot.start))
+    application.add_handler(CommandHandler("help", bot.help_command))
+    application.add_handler(CommandHandler("matches", bot.matches))
+    application.add_handler(CommandHandler("calendar", bot.calendar))
+    application.add_handler(CommandHandler("next", bot.next_match))
+    application.add_handler(CommandHandler("stats", bot.stats))
+    application.add_handler(CommandHandler("standings", bot.standings))
+    
+    # Добавляем ConversationHandler для ставок
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("bet", bot.bet)],
+        states={
+            SELECTING_MATCH: [CallbackQueryHandler(bot.button_handler)],
+            SELECTING_WINNER: [CallbackQueryHandler(bot.button_handler)],
+            ENTERING_SCORE: [MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_score_input)]
+        },
+        fallbacks=[CommandHandler("cancel", bot.cancel)]
+    )
+    application.add_handler(conv_handler)
+    
     # Запускаем бота
     print("🤖 Football Bet Bot запущен...")
     try:
-        bot.application.run_polling(allowed_updates=Update.ALL_TYPES)
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
     except KeyboardInterrupt:
         print("\n🛑 Бот остановлен пользователем")
     except Exception as e:
