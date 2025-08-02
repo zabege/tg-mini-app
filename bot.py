@@ -34,7 +34,7 @@ class FootballBetBot:
         
         # Добавляем пользователя в базу данных
         user = update.effective_user
-        self.db.add_user(user.id, user.username, user.first_name, user.last_name)
+        self.db.add_user(user.id, user.first_name, user.username or "")
         
         welcome_text = f"""
 🤖 **Добро пожаловать в Football Bet Bot!**
@@ -342,7 +342,7 @@ class FootballBetBot:
             match = context.user_data['selected_match']
             
             await query.edit_message_text(
-                f"⚽ **{match[2]} vs {match[3]}**\n\n"
+                f"⚽ **{match['homeTeam']['name']} vs {match['awayTeam']['name']}**\n\n"
                 f"🎯 Победитель: {self._get_winner_text(winner, match)}\n\n"
                 "📊 **Введите предполагаемый счет (например: 2:1):**",
                 parse_mode='Markdown'
@@ -449,14 +449,14 @@ class FootballBetBot:
         
         standings_text = "🏆 **Таблица результатов:**\n\n"
         
-        for i, (username, first_name, last_name, *stats) in enumerate(standings, 1):
-            display_name = username or f"{first_name} {last_name}".strip() or f"Пользователь {stats[0]}"
+        for i, (user_id, username, total_points, correct_winners, correct_scores, total_bets) in enumerate(standings, 1):
+            display_name = username or f"Пользователь {user_id}"
             
             standings_text += f"{i}. **{display_name}**\n"
-            standings_text += f"   📊 Всего баллов: {stats[1]}\n"
-            standings_text += f"   ✅ Угаданных победителей: {stats[2]}\n"
-            standings_text += f"   🎯 Угаданных счетов: {stats[3]}\n"
-            standings_text += f"   📝 Всего ставок: {stats[4]}\n\n"
+            standings_text += f"   📊 Всего баллов: {total_points}\n"
+            standings_text += f"   ✅ Угаданных победителей: {correct_winners}\n"
+            standings_text += f"   🎯 Угаданных счетов: {correct_scores}\n"
+            standings_text += f"   📝 Всего ставок: {total_bets}\n\n"
         
         await update.message.reply_text(standings_text, parse_mode='Markdown')
     

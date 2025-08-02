@@ -98,6 +98,33 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
+# Our project specific files
+.env
+bot_data.json
+football_bets.db
+*.json
+!requirements.txt
+!runtime.txt
+!Procfile
+!DEPLOY.md
+!env.example
+!README.md
+!config.py
+!bot.py
+!database.py
+!football_api.py
+
+# Vercel files (we don't need them for Railway)
+.vercel/
+vercel.json*
+api/bot.py*
+
+# Test files
+test_*.py
+get_*.py
+combine_*.py
+*_matches.json
+
 # SageMath parsed files
 *.sage.py
 
@@ -144,3 +171,4 @@ config_local.py
 # OS
 .DS_Store
 Thumbs.db 
+.vercel

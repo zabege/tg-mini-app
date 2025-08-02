@@ -1,237 +1,193 @@
-import sqlite3
+import os
 import json
 from datetime import datetime
-from config import DATABASE_PATH
+from typing import List, Tuple, Optional
 
 class Database:
     def __init__(self):
-        self.db_path = DATABASE_PATH
-        self.init_database()
+        self.db_path = "bot_data.json"
+        self.users = {}
+        self.matches = {}
+        self.bets = {}
+        self.scores = {}
+        self._load_data()
+    
+    def _load_data(self):
+        """Загрузка данных из файла"""
+        try:
+            if os.path.exists(self.db_path):
+                with open(self.db_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.users = data.get('users', {})
+                    self.matches = data.get('matches', {})
+                    self.bets = data.get('bets', {})
+                    self.scores = data.get('scores', {})
+        except Exception as e:
+            print(f"Ошибка загрузки данных: {e}")
+            # Если файл поврежден, начинаем с пустых данных
+            self.users = {}
+            self.matches = {}
+            self.bets = {}
+            self.scores = {}
+    
+    def _save_data(self):
+        """Сохранение данных в файл"""
+        try:
+            data = {
+                'users': self.users,
+                'matches': self.matches,
+                'bets': self.bets,
+                'scores': self.scores
+            }
+            with open(self.db_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Ошибка сохранения данных: {e}")
     
     def init_database(self):
-        """Инициализация базы данных и создание таблиц"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # Таблица пользователей
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    telegram_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    first_name TEXT,
-                    last_name TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Таблица матчей
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS matches (
-                    id INTEGER PRIMARY KEY,
-                    api_match_id INTEGER UNIQUE,
-                    home_team TEXT NOT NULL,
-                    away_team TEXT NOT NULL,
-                    match_date TIMESTAMP NOT NULL,
-                    tournament TEXT,
-                    status TEXT DEFAULT 'SCHEDULED',
-                    home_score INTEGER,
-                    away_score INTEGER,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Таблица ставок
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS bets (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    match_id INTEGER,
-                    predicted_winner TEXT NOT NULL,
-                    predicted_home_score INTEGER NOT NULL,
-                    predicted_away_score INTEGER NOT NULL,
-                    points_earned INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (telegram_id),
-                    FOREIGN KEY (match_id) REFERENCES matches (id)
-                )
-            ''')
-            
-            # Таблица результатов пользователей
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_stats (
-                    user_id INTEGER PRIMARY KEY,
-                    total_points INTEGER DEFAULT 0,
-                    correct_winners INTEGER DEFAULT 0,
-                    correct_scores INTEGER DEFAULT 0,
-                    total_bets INTEGER DEFAULT 0,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (telegram_id)
-                )
-            ''')
-            
-            conn.commit()
+        """Инициализация базы данных"""
+        # База данных уже инициализирована в конструкторе
+        pass
     
-    def add_user(self, telegram_id, username=None, first_name=None, last_name=None):
-        """Добавление нового пользователя"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO users (telegram_id, username, first_name, last_name)
-                VALUES (?, ?, ?, ?)
-            ''', (telegram_id, username, first_name, last_name))
-            
-            # Создаем запись в статистике пользователя
-            cursor.execute('''
-                INSERT OR IGNORE INTO user_stats (user_id)
-                VALUES (?)
-            ''', (telegram_id,))
-            
-            conn.commit()
+    def add_user(self, user_id: int, first_name: str, username: str = ""):
+        """Добавление пользователя"""
+        self.users[str(user_id)] = {
+            'first_name': first_name,
+            'username': username,
+            'created_at': datetime.now().isoformat()
+        }
+        self._save_data()
     
-    def get_user(self, telegram_id):
-        """Получение информации о пользователе"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM users WHERE telegram_id = ?', (telegram_id,))
-            return cursor.fetchone()
+    def get_user(self, user_id: int) -> Optional[dict]:
+        """Получение пользователя"""
+        return self.users.get(str(user_id))
     
-    def add_match(self, api_match_id, home_team, away_team, match_date, tournament):
-        """Добавление нового матча"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO matches 
-                (api_match_id, home_team, away_team, match_date, tournament)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (api_match_id, home_team, away_team, match_date, tournament))
-            conn.commit()
-            return cursor.lastrowid
+    def add_match(self, match_id: int, home_team: str, away_team: str, match_date: str, competition: str):
+        """Добавление матча"""
+        self.matches[str(match_id)] = {
+            'home_team': home_team,
+            'away_team': away_team,
+            'match_date': match_date,
+            'competition': competition,
+            'home_score': None,
+            'away_score': None,
+            'status': 'scheduled'
+        }
+        self._save_data()
     
-    def get_upcoming_matches(self):
-        """Получение предстоящих матчей"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT * FROM matches 
-                WHERE status = 'SCHEDULED' AND match_date > datetime('now')
-                ORDER BY match_date ASC
-            ''')
-            return cursor.fetchall()
+    def get_match(self, match_id: int) -> Optional[dict]:
+        """Получение матча"""
+        return self.matches.get(str(match_id))
     
-    def get_match(self, match_id):
-        """Получение информации о матче"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM matches WHERE id = ?', (match_id,))
-            return cursor.fetchone()
+    def update_match_score(self, match_id: int, home_score: int, away_score: int):
+        """Обновление счета матча"""
+        if str(match_id) in self.matches:
+            self.matches[str(match_id)]['home_score'] = home_score
+            self.matches[str(match_id)]['away_score'] = away_score
+            self.matches[str(match_id)]['status'] = 'finished'
+            self._save_data()
     
-    def add_bet(self, user_id, match_id, predicted_winner, predicted_home_score, predicted_away_score):
+    def add_bet(self, user_id: int, match_id: int, predicted_winner: str, home_score: int, away_score: int) -> int:
         """Добавление ставки"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO bets (user_id, match_id, predicted_winner, predicted_home_score, predicted_away_score)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (user_id, match_id, predicted_winner, predicted_home_score, predicted_away_score))
-            conn.commit()
-            return cursor.lastrowid
+        bet_id = len(self.bets) + 1
+        self.bets[str(bet_id)] = {
+            'user_id': user_id,
+            'match_id': match_id,
+            'predicted_winner': predicted_winner,
+            'home_score': home_score,
+            'away_score': away_score,
+            'points': 0,
+            'created_at': datetime.now().isoformat()
+        }
+        self._save_data()
+        return bet_id
     
-    def get_user_bet(self, user_id, match_id):
-        """Получение ставки пользователя на конкретный матч"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT * FROM bets WHERE user_id = ? AND match_id = ?
-            ''', (user_id, match_id))
-            return cursor.fetchone()
+    def get_user_bets(self, user_id: int) -> List[dict]:
+        """Получение ставок пользователя"""
+        return [bet for bet in self.bets.values() if bet['user_id'] == user_id]
     
-    def update_match_result(self, match_id, home_score, away_score, status='FINISHED'):
-        """Обновление результата матча"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE matches 
-                SET home_score = ?, away_score = ?, status = ?
-                WHERE id = ?
-            ''', (home_score, away_score, status, match_id))
-            conn.commit()
+    def get_match_bets(self, match_id: int) -> List[dict]:
+        """Получение ставок на матч"""
+        return [bet for bet in self.bets.values() if bet['match_id'] == match_id]
     
-    def calculate_bet_points(self, bet_id):
-        """Расчет баллов за ставку"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
+    def update_bet_points(self, bet_id: int, points: int):
+        """Обновление баллов ставки"""
+        if str(bet_id) in self.bets:
+            self.bets[str(bet_id)]['points'] = points
+            self._save_data()
+    
+    def get_standings(self) -> List[Tuple]:
+        """Получение таблицы результатов"""
+        user_stats = {}
+        
+        # Подсчитываем статистику для каждого пользователя
+        for bet in self.bets.values():
+            user_id = bet['user_id']
+            if user_id not in user_stats:
+                user_stats[user_id] = {
+                    'total_points': 0,
+                    'correct_winners': 0,
+                    'correct_scores': 0,
+                    'total_bets': 0
+                }
             
-            # Получаем ставку и результат матча
-            cursor.execute('''
-                SELECT b.*, m.home_score, m.away_score 
-                FROM bets b 
-                JOIN matches m ON b.match_id = m.id 
-                WHERE b.id = ?
-            ''', (bet_id,))
+            user_stats[user_id]['total_points'] += bet['points']
+            user_stats[user_id]['total_bets'] += 1
             
-            bet_data = cursor.fetchone()
-            if not bet_data:
-                return 0
+            # Подсчитываем правильные прогнозы
+            if bet['points'] >= 1:  # Правильный победитель
+                user_stats[user_id]['correct_winners'] += 1
+            if bet['points'] >= 3:  # Правильный счет
+                user_stats[user_id]['correct_scores'] += 1
+        
+        # Формируем результат
+        standings = []
+        for user_id, stats in user_stats.items():
+            user = self.get_user(user_id)
+            username = user['username'] if user else f"User{user_id}"
             
-            # Определяем победителя матча
-            if bet_data[10] > bet_data[11]:  # home_score > away_score
-                actual_winner = 'home'
-            elif bet_data[10] < bet_data[11]:  # home_score < away_score
-                actual_winner = 'away'
-            else:
-                actual_winner = 'draw'
-            
+            standings.append((
+                user_id,
+                username,
+                stats['total_points'],
+                stats['correct_winners'],
+                stats['correct_scores'],
+                stats['total_bets']
+            ))
+        
+        # Сортируем по баллам (по убыванию)
+        standings.sort(key=lambda x: x[2], reverse=True)
+        
+        return standings
+    
+    def calculate_points_for_match(self, match_id: int):
+        """Расчет баллов для всех ставок на матч"""
+        match = self.get_match(match_id)
+        if not match or match['status'] != 'finished':
+            return
+        
+        home_score = match['home_score']
+        away_score = match['away_score']
+        
+        # Определяем победителя
+        if home_score > away_score:
+            actual_winner = 'home'
+        elif away_score > home_score:
+            actual_winner = 'away'
+        else:
+            actual_winner = 'draw'
+        
+        # Обновляем баллы для всех ставок на этот матч
+        for bet in self.get_match_bets(match_id):
             points = 0
             
-            # Проверяем угаданного победителя
-            if bet_data[4] == actual_winner:  # predicted_winner
+            # Проверяем правильность победителя
+            if bet['predicted_winner'] == actual_winner:
                 points += 1
             
-            # Проверяем угаданный счет
-            if bet_data[5] == bet_data[10] and bet_data[6] == bet_data[11]:  # predicted scores
+            # Проверяем правильность счета
+            if bet['home_score'] == home_score and bet['away_score'] == away_score:
                 points += 3
             
-            # Обновляем баллы в ставке
-            cursor.execute('''
-                UPDATE bets SET points_earned = ? WHERE id = ?
-            ''', (points, bet_id))
-            
-            # Обновляем статистику пользователя
-            user_id = bet_data[1]
-            cursor.execute('''
-                UPDATE user_stats 
-                SET total_points = total_points + ?,
-                    correct_winners = correct_winners + ?,
-                    correct_scores = correct_scores + ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            ''', (
-                points,
-                1 if bet_data[4] == actual_winner else 0,
-                1 if bet_data[5] == bet_data[10] and bet_data[6] == bet_data[11] else 0,
-                user_id
-            ))
-            
-            conn.commit()
-            return points
-    
-    def get_standings(self):
-        """Получение таблицы результатов"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT u.username, u.first_name, u.last_name, us.*
-                FROM user_stats us
-                JOIN users u ON us.user_id = u.telegram_id
-                ORDER BY us.total_points DESC, us.correct_scores DESC
-            ''')
-            return cursor.fetchall()
-    
-    def get_user_stats(self, user_id):
-        """Получение статистики конкретного пользователя"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT * FROM user_stats WHERE user_id = ?
-            ''', (user_id,))
-            return cursor.fetchone() 
+            # Обновляем баллы ставки
+            self.update_bet_points(bet['user_id'], points) 
