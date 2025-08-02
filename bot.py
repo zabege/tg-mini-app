@@ -1,3 +1,6 @@
+import os
+import sys
+import asyncio
 import logging
 import re
 from datetime import datetime
@@ -6,6 +9,9 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from config import BOT_TOKEN, ALLOWED_USERS, POINTS_WINNER, POINTS_SCORE, POINTS_BOTH
 from database import Database
 from football_api import FootballAPI
+import fcntl
+import atexit
+import signal
 
 # Настройка логирования
 logging.basicConfig(
@@ -22,6 +28,39 @@ class FootballBetBot:
         self.db = Database()
         self.football_api = FootballAPI()
         self.user_states = {}  # Для хранения состояния пользователей
+        
+        # Файл блокировки для предотвращения дубликатов
+        self.lock_file = "/tmp/football_bot.lock"
+        self.lock_fd = None
+        
+    def acquire_lock(self):
+        """Приобрести блокировку для предотвращения запуска дубликатов"""
+        try:
+            self.lock_fd = open(self.lock_file, 'w')
+            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            logging.info("Блокировка приобретена успешно")
+            return True
+        except (IOError, OSError) as e:
+            logging.error(f"Не удалось приобрести блокировку: {e}")
+            return False
+            
+    def release_lock(self):
+        """Освободить блокировку"""
+        if self.lock_fd:
+            try:
+                fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+                self.lock_fd.close()
+                if os.path.exists(self.lock_file):
+                    os.unlink(self.lock_file)
+                logging.info("Блокировка освобождена")
+            except Exception as e:
+                logging.error(f"Ошибка при освобождении блокировки: {e}")
+    
+    def signal_handler(self, signum, frame):
+        """Обработчик сигналов для корректного завершения"""
+        logging.info(f"Получен сигнал {signum}, завершаем работу...")
+        self.release_lock()
+        sys.exit(0)
     
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик команды /start"""
@@ -473,33 +512,28 @@ def main():
     
     bot = FootballBetBot()
     
-    # Создаем приложение
-    application = Application.builder().token(BOT_TOKEN).build()
+    # Проверяем блокировку
+    if not bot.acquire_lock():
+        print("❌ Бот уже запущен. Выход.")
+        sys.exit(1)
     
-    # Добавляем обработчики команд
-    application.add_handler(CommandHandler("start", bot.start))
-    application.add_handler(CommandHandler("help", bot.help_command))
-    application.add_handler(CommandHandler("matches", bot.matches))
-    application.add_handler(CommandHandler("calendar", bot.calendar))
-    application.add_handler(CommandHandler("next", bot.next_match))
-    application.add_handler(CommandHandler("standings", bot.standings))
+    # Устанавливаем обработчики сигналов
+    signal.signal(signal.SIGINT, bot.signal_handler)
+    signal.signal(signal.SIGTERM, bot.signal_handler)
     
-    # Добавляем ConversationHandler для ставок
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("bet", bot.bet)],
-        states={
-            CHOOSING_MATCH: [CallbackQueryHandler(bot.button_handler)],
-            CHOOSING_WINNER: [CallbackQueryHandler(bot.button_handler)],
-            ENTERING_SCORE: [MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_score_input)]
-        },
-        fallbacks=[CommandHandler("cancel", bot.cancel)]
-    )
-    
-    application.add_handler(conv_handler)
+    # Устанавливаем обработчик для освобождения блокировки при завершении
+    atexit.register(bot.release_lock)
     
     # Запускаем бота
     print("🤖 Football Bet Bot запущен...")
-    application.run_polling()
+    try:
+        bot.application.run_polling(allowed_updates=Update.ALL_TYPES)
+    except KeyboardInterrupt:
+        print("\n🛑 Бот остановлен пользователем")
+    except Exception as e:
+        print(f"❌ Ошибка при запуске бота: {e}")
+    finally:
+        bot.release_lock()
 
 if __name__ == '__main__':
     main() 
